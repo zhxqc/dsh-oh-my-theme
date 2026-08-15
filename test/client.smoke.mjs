@@ -37,7 +37,7 @@ const primitives = { MarkdownText: (props) => ({ type: 'MarkdownText', props }) 
 
 const requireMock = (spec) => {
   if (spec === 'react/jsx-runtime') return jsx;
-  if (spec === 'react') return {};
+  if (spec === 'react') return { useSyncExternalStore: (_s, get) => get() };
   if (spec === '@deepseek-ai/dsh-client-runtime/client') return runtimeClient;
   if (spec === '@deepseek-ai/dsh-client-ui-primitives') return primitives;
   throw new Error(`unexpected require: ${spec}`);
@@ -166,9 +166,9 @@ const footer = registered.slots.find((r) => r.config.id === 'oh-my-theme-files')
 assert(footer && footer.config.name === 'sidebar.footer.action', 'footer button targets sidebar.footer.action');
 const overlay = registered.slots.find((r) => r.config.id === 'oh-my-theme-file-tree');
 assert(overlay && overlay.config.name === 'shell.overlay', 'drawer targets shell.overlay');
-assert(footer.config.inject().hooks.scope === overlay.config.inject().hooks.scope, 'footer and drawer share one drawer scope');
+assert(footer.config.inject().scope === overlay.config.inject().scope, 'footer and drawer share one drawer scope');
 
-const drawerScope = footer.config.inject().hooks.scope;
+const drawerScope = footer.config.inject().scope;
 const footerInjected = footer.config.inject();
 const overlayInjected = overlay.config.inject();
 
@@ -201,6 +201,18 @@ assert(preview.content.includes('# Hello'), 'preview carries the markdown conten
 // close resets the open flag
 overlayInjected.onClose();
 assert(drawerScope.getSnapshot().open === false, 'close hides the drawer');
+
+// component rendering: the footer button and the drawer must render without
+// crashing (regression for the useScope "w is not a function" crash)
+const t = (key) => key;
+const buttonEl = footer.component({ t, scope: drawerScope, onToggle: footerInjected.onToggle });
+assert(buttonEl !== null && buttonEl.a[0] === 'button', 'FileTreeButton renders a <button>');
+footerInjected.onToggle();
+const drawerEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile });
+assert(drawerEl !== null && drawerEl.a[0] === 'div', 'FileTreeDrawer renders a <div> when open');
+overlayInjected.onClose();
+const closedEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile });
+assert(closedEl === null, 'FileTreeDrawer returns null while closed');
 
 // theme hover preview still works through the theme row actions
 const themeActions = themeRow.config.inject(themeRow.config.store.actions);
