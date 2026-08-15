@@ -1,7 +1,7 @@
 {
   "name": "dsh-oh-my-theme",
-  "version": "0.1.0",
-  "description": "Theme plugin for DeepSeek Harness (dsh) web GUI: curated --dsw-alias-* skin palettes with a picker in Settings, light/dark aware, persisted per browser. 为 dsh 网页端定制的主题/皮肤插件：内置精选配色皮肤 + 设置面板选择器，支持明暗色系，按浏览器持久化。",
+  "version": "0.2.0",
+  "description": "Theme + file workspace plugin for DeepSeek Harness (dsh) web GUI: curated --dsw-alias-* skin palettes with live hover preview, @file mentions in the composer, a lazy-loading project file tree, and Markdown preview. 为 dsh 网页端定制的主题 + 文件工作台插件：精选皮肤与悬停预览、输入框 @ 引用文件、侧边栏懒加载文件树、Markdown 预览。",
   "license": "MIT",
   "author": "zhxqc",
   "keywords": [
@@ -11,6 +11,8 @@
     "plugin",
     "theme",
     "skin",
+    "file-tree",
+    "markdown",
     "web-ui"
   ],
   "type": "module",
@@ -49,7 +51,12 @@
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-theme"
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-input-trigger",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-api-remotes"
       ],
       "platform": "web",
       "immediately": true
@@ -58,9 +65,19 @@
   "peerDependencies": {
     "react": "^18.2.0",
     "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-session": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-typert-protocol": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-typert-registry": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-api-remotes": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-theme": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6"
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-input-trigger": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-connection": "^0.1.0-rc.6"
   }
 }

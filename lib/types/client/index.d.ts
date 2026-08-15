@@ -21,7 +21,8 @@ export declare const DEFAULT_SKIN: 'system';
 export declare const inject: string[];
 
 /**
- * Client plugin body: register the skins, restore the saved one, and mount
- * the Settings → General picker row.
+ * Client plugin body: register the skins, restore the saved one, mount the
+ * workspaceFiles remote, register the @-mention source, and mount the sidebar
+ * file tree drawer (lazy tree + Markdown preview).
  */
 export declare function apply(ctx: Context): void;
