@@ -10,6 +10,7 @@ Built as a third-party Cordis client plugin in the same shape as the shipped `ui
 
 - **3 starter skins** — `aurora` (dark indigo), `coffee` (light warm), `matrix` (dark terminal green) — plus the built-in appearance as the default.
 - **Picker in Settings → General** — one swatch card per skin, right below the built-in Appearance row.
+- **Hover to preview, click to commit** — moving the pointer over a card live-paints the whole page with that skin (nothing is persisted); only a click saves the choice.
 - **Light/dark aware** — each skin declares its base `colorScheme`, so `html { color-scheme }` and `body[data-ds-dark-theme]` follow the skin, not the OS.
 - **Persisted per browser** — the choice lives in `localStorage` (see *How it works*).
 - **zh / en bilingual** — the settings row follows the GUI language.
@@ -52,7 +53,7 @@ dsh web
 
 ## Use
 
-Open **Settings → General** — the **Oh My Theme** row sits below the built-in **Appearance** row. Click a swatch to switch immediately; the choice is remembered next time you open the page. **Default** follows the built-in appearance (`light`/`dark`/`system`).
+Open **Settings → General** — the **Oh My Theme** row sits below the built-in **Appearance** row. Hover a swatch to preview that skin live across the whole page (nothing is saved yet); click to commit — the choice is remembered next time you open the page. **Default** follows the built-in appearance (`light`/`dark`/`system`).
 
 ## Add your own skin
 
