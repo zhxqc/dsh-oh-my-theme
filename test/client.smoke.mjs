@@ -141,10 +141,24 @@ for (const s of plugin.SKINS) assert(zh[`theme.${s.id}`] && en[`theme.${s.id}`],
 assert(registered.remoteMounted !== null, 'remote.$mount called');
 assert(registered.remoteMounted.package === 'dsh-oh-my-theme', 'remote package id correct');
 assert(registered.remoteMounted.descriptors.length === 3, 'three remote descriptors');
+// Client descriptors must match the host manifest on every wire-visible field;
+// schemas are functions (not JSON-serializable), so compare them structurally.
+function codecEqual(a, b) {
+  return a.mode === b.mode && a.typeSymbol === b.typeSymbol && typeof a.schema?.parse === 'function' && typeof b.schema?.parse === 'function';
+}
+function descriptorEqual(a, b) {
+  return a.id === b.id && a.service === b.service && a.namespace === b.namespace && a.method === b.method
+    && JSON.stringify(a.invocation) === JSON.stringify(b.invocation)
+    && JSON.stringify(a.cancellation) === JSON.stringify(b.cancellation)
+    && codecEqual(a.result, b.result)
+    && a.parameters.length === b.parameters.length
+    && a.parameters.every((p, i) => JSON.stringify({ name: p.name, wire: p.wire, source: p.source, lookup: p.lookup }) === JSON.stringify({ name: b.parameters[i].name, wire: b.parameters[i].wire, source: b.parameters[i].source, lookup: b.parameters[i].lookup }) && codecEqual(p.codec, b.parameters[i].codec));
+}
 const hostInvocations = TYPERT_MANIFEST.invocations;
 assert(
-  JSON.stringify(registered.remoteMounted.descriptors) === JSON.stringify(hostInvocations),
-  'client descriptors identical to the host manifest (codecs included)'
+  registered.remoteMounted.descriptors.length === hostInvocations.length
+    && hostInvocations.every((d, i) => descriptorEqual(registered.remoteMounted.descriptors[i], d)),
+  'client descriptors identical to the host manifest (strict codecs included)'
 );
 
 // @-mention source

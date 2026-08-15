@@ -14,12 +14,20 @@ let fakeAgent;
 
 test('host plugin registers a valid Typert manifest', () => {
 	for (const invocation of TYPERT_MANIFEST.invocations) {
-		assert.equal(invocation.result.mode, 'src-json');
+		assert.equal(invocation.result.mode, 'strict');
+		assert.equal(typeof invocation.result.schema.parse, 'function');
 		for (const parameter of invocation.parameters) {
-			assert.equal(parameter.codec?.mode, 'src-json');
+			assert.equal(parameter.codec?.mode, 'strict');
+			assert.equal(typeof parameter.codec.schema.parse, 'function');
+			assert.ok(parameter.codec.typeSymbol.includes('#'), 'codec has a type symbol');
 		}
 	}
 	assert.equal(TYPERT_MANIFEST.invocations.length, 3);
+	// The agent lookup codec must match the provider's wire identity exactly.
+	for (const invocation of TYPERT_MANIFEST.invocations) {
+		const agent = invocation.parameters.find((p) => p.source === 'lookup');
+		assert.equal(agent.codec.typeSymbol, '@deepseek-ai/dsh-session/types#SessionId');
+	}
 });
 
 test('host plugin mounts in a real cordis context', async () => {
