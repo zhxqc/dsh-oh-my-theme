@@ -5,12 +5,43 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { Context } from '@deepseek-ai/cordis';
-import { WorkspaceFilesRuntime } from '../lib/index.js';
+import { WorkspaceFilesRuntime, TYPERT_MANIFEST } from '../lib/index.js';
 
 let root;
 let runtime;
 /** Fake session agent whose header.cwd is the temp workspace. */
 let fakeAgent;
+
+test('host plugin registers a valid Typert manifest', () => {
+	for (const invocation of TYPERT_MANIFEST.invocations) {
+		assert.equal(invocation.result.mode, 'src-json');
+		for (const parameter of invocation.parameters) {
+			assert.equal(parameter.codec?.mode, 'src-json');
+		}
+	}
+	assert.equal(TYPERT_MANIFEST.invocations.length, 3);
+});
+
+test('host plugin mounts in a real cordis context', async () => {
+	const { TypertRegistry } = await import('@deepseek-ai/dsh-typert-registry');
+	const { apply, inject } = await import('../lib/index.js');
+	const ctx = new Context();
+	new TypertRegistry(ctx); // the base bundle mounts typert via the loader
+	let pluginCtx;
+	ctx.plugin({
+		inject,
+		apply: (c) => {
+			pluginCtx = c;
+			apply(c);
+		}
+	});
+	await new Promise((resolve) => setTimeout(resolve, 30)); // async activation
+	assert.ok(pluginCtx, 'plugin apply ran');
+	assert.ok(pluginCtx.get('workspaceFiles'), 'workspaceFiles service registered in plugin scope');
+	const mine = pluginCtx.get('typert').local.list().filter((d) => d.service === 'workspaceFiles');
+	assert.equal(mine.length, 3, 'three workspaceFiles invocations committed');
+	assert.deepEqual(mine.map((d) => d.method), ['search', 'listDir', 'readText']);
+});
 
 test.before(async () => {
 	root = await mkdtemp(path.join(os.tmpdir(), 'dsh-ohm-'));

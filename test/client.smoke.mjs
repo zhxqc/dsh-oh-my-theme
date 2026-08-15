@@ -3,6 +3,7 @@
 // theme skins + hover preview, @-mention source, sidebar file tree drawer.
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { TYPERT_MANIFEST } from '../lib/index.js';
 
 const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
 
@@ -140,6 +141,11 @@ for (const s of plugin.SKINS) assert(zh[`theme.${s.id}`] && en[`theme.${s.id}`],
 assert(registered.remoteMounted !== null, 'remote.$mount called');
 assert(registered.remoteMounted.package === 'dsh-oh-my-theme', 'remote package id correct');
 assert(registered.remoteMounted.descriptors.length === 3, 'three remote descriptors');
+const hostInvocations = TYPERT_MANIFEST.invocations;
+assert(
+  JSON.stringify(registered.remoteMounted.descriptors) === JSON.stringify(hostInvocations),
+  'client descriptors identical to the host manifest (codecs included)'
+);
 
 // @-mention source
 assert(registered.source !== null, 'inputTriggers source registered');
