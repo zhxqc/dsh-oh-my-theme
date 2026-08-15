@@ -19,13 +19,30 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 
 ## Features
 
+### 🎨 Skins & typography
+
+> Switch palettes and independently tune conversation, file-tree, and file-preview text under **Settings → General → Oh My Theme**.
+
 - **3 starter skins** — `aurora` (dark indigo), `coffee` (light warm), `matrix` (dark terminal green) — plus the built-in appearance as the default.
 - **Live hover preview** — moving the pointer over a swatch paints the whole page with that skin (nothing persisted); only a click saves the choice.
-- **Global text display** — configure conversation, file-tree, and file-preview sizes plus the preview font; changes apply immediately and persist in the current browser.
-- **@file mentions** — a composer trigger source (`trigger: "@"`) that searches the session's workspace, ranks results, and inserts `@relative/path ` on pick. Picking a file also opens its right-side preview; directory picks append `/` so you can drill into folders.
-- **Lazy-loading file tree** — a workspace button left of Session log opens a project tree; the tree and `@` menu share VSCode Material Icon Theme icons. Directories load one level at a time, while `node_modules`/`.git`/build dirs are skipped.
-- **Independent views** — switch between project-tree-only, split tree + preview, and preview-only layouts. `.md` files use dsh's Shiki-backed Markdown renderer with syntax highlighting and copy controls; other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
-- **zh / en bilingual** — all surfaces follow the GUI language.
+- **Global text display** — conversation, file-tree, and file-preview sizes plus the preview font are configured separately; changes apply immediately and persist in the current browser.
+
+### ✨ @file mentions
+
+> Type `@` in the composer to search the current project and insert `@path` references the agent can read precisely — no blind searching.
+
+- Searches and ranks the current session's workspace; picking a file inserts `@relative/path ` and opens its preview in the right panel.
+- Directory picks append `/` so `@src/` keeps narrowing.
+
+### 📁 Right-side file panel (Codex-style)
+
+> A workspace button left of Session log opens the panel. Switch between project-tree-only, split tree + preview, and preview-only layouts; Markdown gets syntax highlighting.
+
+- **Lazy-loading file tree** — directories load one level at a time, skipping `node_modules` / `.git` / build dirs; the tree and `@` menu share VSCode Material Icon Theme icons.
+- **Independent views** — the panel header toggles project-tree-only / split / preview-only.
+- **Markdown preview** — `.md` files use dsh's Shiki-backed Markdown renderer with syntax highlighting and copy controls; other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
+
+> **Where data lives**: skin, size, and font preferences are stored in the current browser's `localStorage`; session data is untouched.
 
 ## How it works
 
