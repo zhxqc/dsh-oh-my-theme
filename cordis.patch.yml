@@ -1,0 +1,8 @@
+# dsh-oh-my-theme bundle patch — inserts one loader entry into the web profile
+# roster. The entry is a normal cordis loader entry (id + package name); the
+# browser half is picked up by dsh-client-modules through the package's
+# `dsh.client` declaration in package.json, exactly like the shipped ui-*
+# packages and the third-party dsh-skin plugin.
+- insert:
+    - id: oh-my-theme
+      name: 'dsh-oh-my-theme'
