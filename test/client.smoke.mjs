@@ -123,7 +123,12 @@ const mockFilesRemote = {
     if (relPath === 'src') return { ok: true, value: [{ relative: 'src/index.ts', name: 'index.ts', kind: 'file' }] };
     return { ok: true, value: [] };
   },
-  readText: async () => ({ ok: true, value: { content: '# Hello\n\nSome *markdown*.', truncated: false } }),
+  readText: async (_sessionId, relPath) => ({
+    ok: true,
+    value: relPath === 'docs/guide.md'
+      ? { content: '# Guide\n\n![logo](./img/logo.png)\n', truncated: false }
+      : { content: '# Hello\n\nSome *markdown*.', truncated: false },
+  }),
 };
 
 const workspaces = {
@@ -293,6 +298,16 @@ assert(preview.relative === 'README.md', 'preview carries the relative path');
 assert(preview.content.includes('# Hello'), 'preview carries the markdown content');
 assert(preview.kind === 'markdown', 'md files preview as markdown');
 assert(drawerScope.getSnapshot().viewMode === 'preview', 'tree selection can display preview independently');
+
+// relative markdown images are rewritten to the host endpoint
+const mdPreview = await (async () => {
+  overlayInjected.onSelectFile('docs/guide.md');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return drawerScope.getSnapshot().preview;
+})();
+const expectedImageUrl = `/api/oh-my-theme/image?session=session-1&path=${encodeURIComponent('docs/img/logo.png')}`;
+assert(mdPreview !== null && mdPreview.content.includes(expectedImageUrl), 'relative image rewritten to the host endpoint');
+assert(mdPreview.content.includes('![logo]('), 'image alt preserved');
 overlayInjected.onSetView('split');
 assert(drawerScope.getSnapshot().viewMode === 'split', 'panel supports a split files-and-preview view');
 overlayInjected.onSetView('tree');

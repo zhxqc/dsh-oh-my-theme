@@ -1,6 +1,17 @@
 {
   "name": "dsh-oh-my-theme",
   "version": "0.2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhxqc/dsh-oh-my-theme.git"
+  },
+  "homepage": "https://github.com/zhxqc/dsh-oh-my-theme#readme",
+  "bugs": {
+    "url": "https://github.com/zhxqc/dsh-oh-my-theme/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Theme + file workspace plugin for DeepSeek Harness (dsh) web GUI: curated --dsw-alias-* skin palettes with live hover preview, @file mentions in the composer, a lazy-loading project file tree, and Markdown preview. 为 dsh 网页端定制的主题 + 文件工作台插件：精选皮肤与悬停预览、输入框 @ 引用文件、侧边栏懒加载文件树、Markdown 预览。",
   "license": "MIT",
   "author": "zhxqc",
@@ -11,7 +22,10 @@
     "plugin",
     "theme",
     "skin",
+    "file-system",
+    "file-explorer",
     "file-tree",
+    "at-mentions",
     "markdown",
     "web-ui"
   ],

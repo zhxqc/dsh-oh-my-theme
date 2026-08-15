@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { Context } from '@deepseek-ai/cordis';
-import { WorkspaceFilesRuntime, TYPERT_MANIFEST } from '../lib/index.js';
+import { WorkspaceFilesRuntime, TYPERT_MANIFEST, readImageResponse } from '../lib/index.js';
 
 let root;
 let runtime;
@@ -35,6 +35,9 @@ test('host plugin mounts in a real cordis context', async () => {
 	const { apply, inject } = await import('../lib/index.js');
 	const ctx = new Context();
 	new TypertRegistry(ctx); // the base bundle mounts typert via the loader
+	const registeredRoutes = [];
+	ctx.provide('webServer', { register: (route) => { registeredRoutes.push(route); return () => {}; } });
+	ctx.provide('sessions', { get: () => undefined });
 	let pluginCtx;
 	ctx.plugin({
 		inject,
@@ -49,6 +52,8 @@ test('host plugin mounts in a real cordis context', async () => {
 	const mine = pluginCtx.get('typert').local.list().filter((d) => d.service === 'workspaceFiles');
 	assert.equal(mine.length, 3, 'three workspaceFiles invocations committed');
 	assert.deepEqual(mine.map((d) => d.method), ['search', 'listDir', 'readText']);
+	assert.equal(registeredRoutes.length, 1, 'image route registered');
+	assert.equal(registeredRoutes[0].path, '/api/oh-my-theme/image', 'image route path correct');
 });
 
 test.before(async () => {
@@ -63,6 +68,10 @@ test.before(async () => {
 	await writeFile(path.join(root, 'src', 'components', 'Button.tsx'), 'export function Button() {}\n');
 	await writeFile(path.join(root, 'node_modules', 'dep.js'), 'ignored\n');
 	await writeFile(path.join(root, '.git', 'config'), 'ignored\n');
+	await mkdir(path.join(root, 'docs'));
+	await mkdir(path.join(root, 'docs', 'img'));
+	await writeFile(path.join(root, 'docs', 'guide.md'), '# Guide\n\n![logo](./img/logo.png)\n');
+	await writeFile(path.join(root, 'docs', 'img', 'logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52]));
 	fakeAgent = { session: { header: { cwd: root } } };
 	const ctx = new Context();
 	runtime = new WorkspaceFilesRuntime(ctx);
@@ -70,6 +79,34 @@ test.before(async () => {
 
 test.after(async () => {
 	await rm(root, { recursive: true, force: true });
+});
+
+/** Minimal sessions-service mock keyed on one known session id. */
+function mockSessions() {
+	return { get: (id) => (id === 's1' ? { header: { cwd: root } } : undefined) };
+}
+
+test('image endpoint serves a workspace image', async () => {
+	const result = await readImageResponse(mockSessions(), 's1', 'docs/img/logo.png');
+	assert.equal(result.status, 200);
+	assert.equal(result.type, 'image/png');
+	assert.ok(result.body !== undefined && result.body.length > 0, 'body present');
+});
+
+test('image endpoint rejects non-image extensions', async () => {
+	const result = await readImageResponse(mockSessions(), 's1', 'README.md');
+	assert.equal(result.status, 400);
+});
+
+test('image endpoint rejects path traversal', async () => {
+	const result = await readImageResponse(mockSessions(), 's1', '../outside.png');
+	assert.equal(result.status, 400);
+});
+
+test('image endpoint rejects unknown sessions and missing params', async () => {
+	assert.equal((await readImageResponse(mockSessions(), 'nope', 'a.png')).status, 404);
+	assert.equal((await readImageResponse(mockSessions(), '', 'a.png')).status, 400);
+	assert.equal((await readImageResponse(mockSessions(), 's1', '')).status, 400);
 });
 
 test('search indexes the workspace and ignores node_modules/.git', async () => {
@@ -99,7 +136,7 @@ test('listDir loads one level lazily, dirs first', async () => {
 	const rootRows = await runtime.listDir(fakeAgent, '', undefined);
 	assert.deepEqual(
 		rootRows.map((row) => row.relative),
-		['src', 'README.md', 'package.json'],
+		['docs', 'src', 'README.md', 'package.json'],
 		'root level: dirs first, alphabetical'
 	);
 	const srcRows = await runtime.listDir(fakeAgent, 'src', undefined);
