@@ -72,6 +72,7 @@ const sandbox = {
   AbortController,
   window: {
     __ModuleLoader__: { load: (def) => { capturedFactory = def.factory; } },
+    location: { origin: 'http://127.0.0.1:3080' },
     localStorage: {
       getItem: () => 'aurora',
       setItem: (k, v) => storageWrites.push([k, v]),
@@ -126,7 +127,7 @@ const mockFilesRemote = {
   readText: async (_sessionId, relPath) => ({
     ok: true,
     value: relPath === 'docs/guide.md'
-      ? { content: '# Guide\n\n![logo](./img/logo.png)\n', truncated: false }
+      ? { content: '# Guide\n\n![logo](./img/logo.png)\n\n<img src="./img/banner.png" alt="banner" width="720" />\n\n<p align="center"><a href="https://npmjs.com"><img alt="npm" src="https://img.shields.io/npm/v/demo" /></a></p>\n', truncated: false }
       : { content: '# Hello\n\nSome *markdown*.', truncated: false },
   }),
 };
@@ -305,9 +306,13 @@ const mdPreview = await (async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
   return drawerScope.getSnapshot().preview;
 })();
-const expectedImageUrl = `/api/oh-my-theme/image?session=session-1&path=${encodeURIComponent('docs/img/logo.png')}`;
-assert(mdPreview !== null && mdPreview.content.includes(expectedImageUrl), 'relative image rewritten to the host endpoint');
+const expectedImageUrl = `http://127.0.0.1:3080/api/oh-my-theme/image?session=session-1&path=${encodeURIComponent('docs/img/logo.png')}`;
+assert(mdPreview !== null && mdPreview.content.includes(expectedImageUrl), 'relative image rewritten to an absolute host endpoint accepted by MarkdownText');
 assert(mdPreview.content.includes('![logo]('), 'image alt preserved');
+const expectedHtmlImageUrl = `http://127.0.0.1:3080/api/oh-my-theme/image?session=session-1&path=${encodeURIComponent('docs/img/banner.png')}`;
+assert(mdPreview.content.includes(`![banner](${expectedHtmlImageUrl})`), 'standalone HTML img converted to a safe Markdown image');
+assert(mdPreview.content.includes('![npm](https://img.shields.io/npm/v/demo)'), 'linked remote badge image converted without raw HTML');
+assert(!mdPreview.content.includes('<img'), 'converted preview contains no raw img tags');
 overlayInjected.onSetView('split');
 assert(drawerScope.getSnapshot().viewMode === 'split', 'panel supports a split files-and-preview view');
 overlayInjected.onSetView('tree');
@@ -340,10 +345,13 @@ const buttonEl = launcher.component({ t, scope: drawerScope, onToggle: launcherI
 assert(buttonEl !== null && buttonEl.a[0] === 'button', 'FileTreeButton renders a <button>');
 assert(buttonEl.a[1].style.width === 32, 'launcher uses the compact Session-header button size');
 launcherInjected.onToggle();
-const panelEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile, onSetView: overlayInjected.onSetView, onOpenExternal: overlayInjected.onOpenExternal });
+const panelEl = overlay.component({ t, ...overlayInjected });
 assert(panelEl !== null && panelEl.a[0] === 'div', 'FileSidePanel renders a <div> when open');
+assert(panelEl.a[1].ref?.current === null, 'file panel root binds the resize ref');
+assert(panelEl.a[1].style.width === 'min(1200px, calc(100vw - 48px))', 'overlay file panel supports the enlarged 1200px maximum');
+assert(panelEl.a[1].children[0].a[1]['aria-label'] === '调整侧边面板宽度', 'entire overlay panel exposes the resize handle');
 overlayInjected.onClose();
-const closedEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile, onSetView: overlayInjected.onSetView, onOpenExternal: overlayInjected.onOpenExternal });
+const closedEl = overlay.component({ t, ...overlayInjected });
 assert(closedEl === null, 'FileSidePanel returns null while closed');
 
 // theme hover preview still works through the theme row actions
