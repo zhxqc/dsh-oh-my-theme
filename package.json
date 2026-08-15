@@ -37,7 +37,8 @@
     "lib/index.js",
     "lib/client.js",
     "lib/types",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
     "install:web": "dsh plugin --profile web add .",

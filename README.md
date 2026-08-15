@@ -4,9 +4,9 @@
 
 Theme + file workspace plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) web GUI:
 
-1. **Skins** — curated `--dsw-alias-*` palettes with a picker inside **Settings → General**; hover a swatch to preview it live, click to commit.
+1. **Skins and typography** — switch palettes and independently adjust conversation, file-tree, and file-preview text sizes under **Settings → General → Oh My Theme**.
 2. **@file mentions** — type `@` in the composer to search the current project and insert `@path` references the agent can read precisely.
-3. **Right-side file panel** — a Codex-style explorer on the right edge: project file tree on the left, opened file preview on the right (Markdown rendered, other text files as plain text).
+3. **Right-side file panel** — a Codex-style project tree and file preview that can be shown independently or side by side; Markdown includes syntax highlighting and other text files render as plain text.
 
 Built as a third-party plugin in the same shape as the shipped `ui-*` packages and the [dsh-at-file](https://github.com/FSMargoo/dsh-at-file) / [dsh-skin](https://github.com/KinGao294/dsh-skin) plugins. No build step: both halves are hand-written files served verbatim.
 
@@ -14,9 +14,10 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 
 - **3 starter skins** — `aurora` (dark indigo), `coffee` (light warm), `matrix` (dark terminal green) — plus the built-in appearance as the default.
 - **Live hover preview** — moving the pointer over a swatch paints the whole page with that skin (nothing persisted); only a click saves the choice.
-- **@file mentions** — a composer trigger source (`trigger: "@"`) that searches the session's workspace, ranks results, and inserts `@relative/path ` on pick. Directory picks append `/` so you can drill into folders.
-- **Lazy-loading file tree** — a toggle in the sidebar footer opens a project tree; directories load one level at a time, `node_modules`/`.git`/build dirs are skipped.
-- **File preview** — clicking a file opens it in the panel's right column: `.md` files render through the shared Markdown component, other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
+- **Global text display** — configure conversation, file-tree, and file-preview sizes plus the preview font; changes apply immediately and persist in the current browser.
+- **@file mentions** — a composer trigger source (`trigger: "@"`) that searches the session's workspace, ranks results, and inserts `@relative/path ` on pick. Picking a file also opens its right-side preview; directory picks append `/` so you can drill into folders.
+- **Lazy-loading file tree** — a workspace button left of Session log opens a project tree; the tree and `@` menu share VSCode Material Icon Theme icons. Directories load one level at a time, while `node_modules`/`.git`/build dirs are skipped.
+- **Independent views** — switch between project-tree-only, split tree + preview, and preview-only layouts. `.md` files use dsh's Shiki-backed Markdown renderer with syntax highlighting and copy controls; other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
 - **zh / en bilingual** — all surfaces follow the GUI language.
 
 ## How it works
@@ -35,9 +36,10 @@ On activation the browser half:
 
 1. **Registers each skin** with the built-in theme service (`ctx.theme.register(...)`); the ThemePresenter applies token overrides as inline custom properties on `<body>`.
 2. **Restores the saved skin** from `localStorage` (`dsh-oh-my-theme:skin`).
-3. **Mounts the `workspaceFiles` remote** (`ctx.remote.$mount(OHMY_REMOTE)` → `ctx.reflect.get("remote.workspaceFiles")`).
-4. **Registers the `@` trigger source** with `inputTriggers` — one index fetch per session (60 s TTL), ranked in-memory per keystroke.
-5. **Mounts the right-side file panel** — a toggle in `sidebar.footer.action` plus the panel in the root-scoped `shell.overlay` list slot, fixed to the right edge (the overlay layer is `pointer-events: none` with auto children, so the panel interacts while the rest of the page stays clickable). The panel shares one snapshot store across both slots, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
+3. **Restores typography preferences** from localStorage and immediately applies conversation, file-tree, and file-preview sizes plus the preview font through page-level CSS variables.
+4. **Mounts the `workspaceFiles` remote** (`ctx.remote.$mount(OHMY_REMOTE)` → `ctx.reflect.get("remote.workspaceFiles")`).
+5. **Registers the `@` trigger source** with `inputTriggers` — one index fetch per session (60 s TTL), ranked in-memory per keystroke.
+6. **Mounts the right-side file panel** — the launcher sits left of Session log. Existing conversations use a `details` column expandable up to 860px; blank sessions fall back to a fixed right-edge panel. The panel only claims either presentation while open, shares one snapshot store, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
 
 ### Why localStorage?
 
@@ -64,15 +66,15 @@ dsh web
 
 ### Skins
 
-Open **Settings → General** — the **Oh My Theme** row sits below the built-in **Appearance** row. Hover a swatch to preview that skin live across the whole page (nothing is saved yet); click to commit. **Default** follows the built-in appearance.
+Open **Settings → General** — the **Oh My Theme** row sits below the built-in **Appearance** row. Hover a swatch to preview that skin live across the whole page (nothing is saved yet); click to commit. The same row controls conversation, file-tree, and file-preview text sizes plus the preview font. Changes apply immediately and persist in the current browser. **Default** follows the built-in appearance.
 
 ### @file mentions
 
-In the composer, type `@` and start typing a path fragment — a menu lists matching files and directories of the current project. Pick one to insert `@path ` into the draft; the agent reads the file precisely instead of searching blindly. Directory results append `/` so `@src/` keeps narrowing.
+In the composer, type `@` and start typing a path fragment — a menu lists matching files and directories of the current project. Pick a file to insert `@path ` into the draft and open its preview on the right; the agent reads the file precisely instead of searching blindly. Directory results append `/`, so `@src/` keeps narrowing without opening a preview.
 
 ### File tree + Markdown preview
 
-Click the **folder** button in the sidebar footer (bottom of the left rail) to open the Codex-style panel on the right edge. The left column is the lazy-loading project tree; clicking a file opens its preview in the right column — `.md` renders through the shared Markdown component, other text files show as plain text. The panel always follows the currently open session's workspace.
+Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Shiki Markdown renderer with highlighted fenced code and localized copy buttons, while other text files show as plain text.
 
 ## Add your own skin
 
@@ -123,6 +125,8 @@ dsh-oh-my-theme/
 │   ├── client.js       # browser half — skins, @-mentions, file tree
 │   └── types/          # type stubs
 ├── test/host.test.mjs  # host service unit tests (node --test)
+├── test/client.smoke.mjs # browser bundle smoke test
+├── THIRD_PARTY_NOTICES.md # notices for Material Icon Theme and other third-party assets
 ├── README.md / README.zh.md
 └── LICENSE
 ```
@@ -133,6 +137,16 @@ dsh-oh-my-theme/
 node --test test/host.test.mjs   # host service tests
 node test/client.smoke.mjs      # client bundle smoke test
 ```
+
+## TODO
+
+- [ ] **Read-only Git integration (first phase)**
+  - Add Changes and Commits views to the right-side workspace;
+  - Group staged, unstaged, and untracked files with status markers and file-level Diff previews;
+  - Paginate commit summaries, authors, and timestamps, with per-commit file lists and Diff details;
+  - Expose only fixed read-only Git methods from the host, validating workspace paths and commit hashes while capping execution time and output size;
+  - Prefer dsh's built-in `DiffBlock` instead of adding a heavy client library to the current build-free browser bundle.
+- [ ] **Git write operations (second-phase evaluation)** — staging, commits, branch switching, and conflict resolution require additional confirmation, permission, and recovery design and are outside the first phase.
 
 ## Uninstall
 
