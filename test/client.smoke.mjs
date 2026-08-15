@@ -318,11 +318,20 @@ assert(drawerScope.getSnapshot().viewMode === 'split', 'panel supports a split f
 overlayInjected.onSetView('tree');
 assert(drawerScope.getSnapshot().viewMode === 'tree', 'panel supports a standalone project-tree view');
 
-// selecting a plain text file previews as text
+// recognized source files are routed through the shared Shiki renderer
 overlayInjected.onSelectFile('src/index.ts');
 await new Promise((resolve) => setTimeout(resolve, 0));
 const textPreview = drawerScope.getSnapshot().preview;
-assert(textPreview.kind === 'text', 'non-md files preview as text');
+assert(textPreview.kind === 'code', 'recognized source files preview as highlighted code');
+assert(textPreview.language === 'typescript', 'source extension maps to a Shiki language');
+assert(plugin.codeLanguageForPath('src/components/Button.tsx') === 'tsx', 'tsx language is detected');
+assert(plugin.codeLanguageForPath('Dockerfile') === 'dockerfile', 'extensionless code filename is detected');
+assert(plugin.codeLanguageForPath('notes.txt') === null, 'unknown text remains plain text');
+const fencedSource = plugin.codeMarkdown('const sample = `value`;\n```\n', 'typescript');
+assert(fencedSource.startsWith('````typescript\n'), 'code fence grows past fences contained in source');
+assert(fencedSource.endsWith('\n````'), 'highlighted code fence closes safely');
+const highlightedPanel = overlay.component({ t: (key) => key, ...overlayInjected });
+assert(JSON.stringify(highlightedPanel).includes('```typescript\\n'), 'code preview renders through MarkdownText with a language fence');
 
 // Conversation file links route through workspaces.openPath. Current-workspace
 // text files now open in this preview, while outside paths keep host behavior.

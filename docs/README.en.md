@@ -13,7 +13,7 @@ Theme + file workspace plugin for the [DeepSeek Harness](https://github.com/deep
 
 1. **Skins and typography** — switch palettes and independently adjust conversation, file-tree, and file-preview text sizes under **Settings → General → Oh My Theme**.
 2. **@file mentions** — type `@` in the composer to search the current project and insert `@path` references the agent can read precisely.
-3. **Right-side file panel** — a Codex-style project tree and file preview that can be shown independently or side by side; Markdown includes syntax highlighting and other text files render as plain text.
+3. **Right-side file panel** — a Codex-style project tree and file preview that can be shown independently or side by side; Markdown and common source files include syntax highlighting, while unknown text formats fall back to plain text.
 
 Built as a third-party plugin in the same shape as the shipped `ui-*` packages and the [dsh-at-file](https://github.com/FSMargoo/dsh-at-file) / [dsh-skin](https://github.com/KinGao294/dsh-skin) plugins. No build step: both halves are hand-written files served verbatim.
 
@@ -36,11 +36,11 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 
 ### 📁 Right-side file panel (Codex-style)
 
-> A workspace button left of Session log opens the panel. Switch between project-tree-only, split tree + preview, and preview-only layouts; Markdown gets syntax highlighting.
+> A workspace button left of Session log opens the panel. Switch between project-tree-only, split tree + preview, and preview-only layouts; Markdown and common source files get syntax highlighting.
 
 - **Lazy-loading file tree** — directories load one level at a time, skipping `node_modules` / `.git` / build dirs; the tree and `@` menu share VSCode Material Icon Theme icons.
 - **Independent views** — the panel header toggles project-tree-only / split / preview-only.
-- **Markdown preview** — `.md` files use dsh's Shiki-backed Markdown renderer with syntax highlighting and copy controls; other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
+- **Markdown and code preview** — `.md` files use dsh's Markdown renderer; common JS/TS/TSX, JSON, HTML/CSS, Vue, Python, Go, Rust, Java, shell, YAML, SQL, and Dockerfile sources reuse Shiki highlighting and copy controls. Unknown UTF-8 text formats fall back to plain text (512 KB cap, binary files rejected).
 
 > **Where data lives**: skin, size, and font preferences are stored in the current browser's `localStorage`; session data is untouched.
 
@@ -63,7 +63,7 @@ On activation the browser half:
 3. **Restores typography preferences** from localStorage and immediately applies conversation, file-tree, and file-preview sizes plus the preview font through page-level CSS variables.
 4. **Mounts the `workspaceFiles` remote** (`ctx.remote.$mount(OHMY_REMOTE)` → `ctx.reflect.get("remote.workspaceFiles")`).
 5. **Registers the `@` trigger source** with `inputTriggers` — one index fetch per session (60 s TTL), ranked in-memory per keystroke.
-6. **Mounts the right-side file panel** — the launcher sits left of Session log. Existing conversations use a `details` column expandable up to 860px; blank sessions fall back to a fixed right-edge panel. The panel only claims either presentation while open, shares one snapshot store, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
+6. **Mounts the right-side file panel** — the launcher sits left of Session log. Existing conversations use a resizable `details` column and blank sessions use a right-edge overlay; both presentations share the persisted width setting and expand up to 1200px while preserving a minimum conversation width. The panel only claims either presentation while open, shares one snapshot store, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
 
 ### Why localStorage?
 
@@ -102,9 +102,9 @@ Open **Settings → General** — the **Oh My Theme** row sits below the built-i
 
 In the composer, type `@` and start typing a path fragment — a menu lists matching files and directories of the current project. Pick a file to insert `@path ` into the draft and open its preview on the right; the agent reads the file precisely instead of searching blindly. Directory results append `/`, so `@src/` keeps narrowing without opening a preview.
 
-### File tree + Markdown preview
+### File tree + file preview
 
-Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Shiki Markdown renderer with highlighted fenced code and localized copy buttons, while other text files show as plain text.
+Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views, and the whole panel can be resized up to 1200px. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Markdown renderer; recognized source files are mapped from their filename or extension to a Shiki language and render with highlighting and localized copy buttons. Unknown text formats remain plain text.
 
 ## Add your own skin
 
@@ -157,7 +157,8 @@ dsh-oh-my-theme/
 ├── test/host.test.mjs  # host service unit tests (node --test)
 ├── test/client.smoke.mjs # browser bundle smoke test
 ├── THIRD_PARTY_NOTICES.md # notices for Material Icon Theme and other third-party assets
-├── README.md / README.en.md
+├── README.md
+├── docs/README.en.md
 └── LICENSE
 ```
 
