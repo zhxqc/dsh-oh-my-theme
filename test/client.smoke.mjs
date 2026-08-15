@@ -161,12 +161,12 @@ const pickedDir = registered.source.onPick({ candidate: { value: 'src' }, sessio
 assert(pickedDir.text === '@src/ ', 'directory pick appends a trailing slash');
 assert(Array.isArray(registered.source.lexicon(mockSession)), 'lexicon returns the indexed list');
 
-// file tree drawer
+// file tree panel
 const footer = registered.slots.find((r) => r.config.id === 'oh-my-theme-files');
 assert(footer && footer.config.name === 'sidebar.footer.action', 'footer button targets sidebar.footer.action');
-const overlay = registered.slots.find((r) => r.config.id === 'oh-my-theme-file-tree');
-assert(overlay && overlay.config.name === 'shell.overlay', 'drawer targets shell.overlay');
-assert(footer.config.inject().scope === overlay.config.inject().scope, 'footer and drawer share one drawer scope');
+const overlay = registered.slots.find((r) => r.config.id === 'oh-my-theme-file-panel');
+assert(overlay && overlay.config.name === 'shell.overlay', 'file panel targets shell.overlay');
+assert(footer.config.inject().scope === overlay.config.inject().scope, 'footer and panel share one drawer scope');
 
 const drawerScope = footer.config.inject().scope;
 const footerInjected = footer.config.inject();
@@ -180,6 +180,7 @@ assert(drawerScope.getSnapshot().open === false, 'drawer starts closed');
 footerInjected.onToggle();
 assert(drawerScope.getSnapshot().open === true, 'footer toggle opens the drawer');
 await new Promise((resolve) => setTimeout(resolve, 0)); // let the lazy root load settle
+assert(drawerScope.getSnapshot().remoteReady === true, 'remote ready published after mount');
 assert(drawerScope.getSnapshot().dirs[''] !== undefined, 'root directory loaded lazily on open');
 assert(drawerScope.getSnapshot().dirs[''].length === 2, 'root rows present');
 
@@ -197,22 +198,29 @@ const preview = drawerScope.getSnapshot().preview;
 assert(preview !== null, 'preview populated');
 assert(preview.relative === 'README.md', 'preview carries the relative path');
 assert(preview.content.includes('# Hello'), 'preview carries the markdown content');
+assert(preview.kind === 'markdown', 'md files preview as markdown');
+
+// selecting a plain text file previews as text
+overlayInjected.onSelectFile('src/index.ts');
+await new Promise((resolve) => setTimeout(resolve, 0));
+const textPreview = drawerScope.getSnapshot().preview;
+assert(textPreview.kind === 'text', 'non-md files preview as text');
 
 // close resets the open flag
 overlayInjected.onClose();
 assert(drawerScope.getSnapshot().open === false, 'close hides the drawer');
 
-// component rendering: the footer button and the drawer must render without
+// component rendering: the footer button and the panel must render without
 // crashing (regression for the useScope "w is not a function" crash)
 const t = (key) => key;
 const buttonEl = footer.component({ t, scope: drawerScope, onToggle: footerInjected.onToggle });
 assert(buttonEl !== null && buttonEl.a[0] === 'button', 'FileTreeButton renders a <button>');
 footerInjected.onToggle();
-const drawerEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile });
-assert(drawerEl !== null && drawerEl.a[0] === 'div', 'FileTreeDrawer renders a <div> when open');
+const panelEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile });
+assert(panelEl !== null && panelEl.a[0] === 'div', 'FileSidePanel renders a <div> when open');
 overlayInjected.onClose();
 const closedEl = overlay.component({ t, scope: drawerScope, onClose: overlayInjected.onClose, onToggleDir: overlayInjected.onToggleDir, onSelectFile: overlayInjected.onSelectFile });
-assert(closedEl === null, 'FileTreeDrawer returns null while closed');
+assert(closedEl === null, 'FileSidePanel returns null while closed');
 
 // theme hover preview still works through the theme row actions
 const themeActions = themeRow.config.inject(themeRow.config.store.actions);

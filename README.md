@@ -6,7 +6,7 @@ Theme + file workspace plugin for the [DeepSeek Harness](https://github.com/deep
 
 1. **Skins** — curated `--dsw-alias-*` palettes with a picker inside **Settings → General**; hover a swatch to preview it live, click to commit.
 2. **@file mentions** — type `@` in the composer to search the current project and insert `@path` references the agent can read precisely.
-3. **Sidebar file tree + Markdown preview** — a lazy-loading project tree in the sidebar with rendered previews for `.md` files.
+3. **Right-side file panel** — a Codex-style explorer on the right edge: project file tree on the left, opened file preview on the right (Markdown rendered, other text files as plain text).
 
 Built as a third-party plugin in the same shape as the shipped `ui-*` packages and the [dsh-at-file](https://github.com/FSMargoo/dsh-at-file) / [dsh-skin](https://github.com/KinGao294/dsh-skin) plugins. No build step: both halves are hand-written files served verbatim.
 
@@ -16,7 +16,7 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 - **Live hover preview** — moving the pointer over a swatch paints the whole page with that skin (nothing persisted); only a click saves the choice.
 - **@file mentions** — a composer trigger source (`trigger: "@"`) that searches the session's workspace, ranks results, and inserts `@relative/path ` on pick. Directory picks append `/` so you can drill into folders.
 - **Lazy-loading file tree** — a toggle in the sidebar footer opens a project tree; directories load one level at a time, `node_modules`/`.git`/build dirs are skipped.
-- **Markdown preview** — clicking a `.md` file renders it in the drawer via the shared Markdown component (UTF-8 text, 512 KB cap, binary files rejected).
+- **File preview** — clicking a file opens it in the panel's right column: `.md` files render through the shared Markdown component, other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
 - **zh / en bilingual** — all surfaces follow the GUI language.
 
 ## How it works
@@ -37,7 +37,7 @@ On activation the browser half:
 2. **Restores the saved skin** from `localStorage` (`dsh-oh-my-theme:skin`).
 3. **Mounts the `workspaceFiles` remote** (`ctx.remote.$mount(OHMY_REMOTE)` → `ctx.reflect.get("remote.workspaceFiles")`).
 4. **Registers the `@` trigger source** with `inputTriggers` — one index fetch per session (60 s TTL), ranked in-memory per keystroke.
-5. **Mounts the file tree drawer** — a toggle in `sidebar.footer.action` plus the drawer in the root-scoped `shell.overlay` list slot (the overlay layer is `pointer-events: none` with auto children, so the drawer interacts while the rest of the page stays clickable). The drawer shares one snapshot store across both slots and follows the current session from `sessions.list`.
+5. **Mounts the right-side file panel** — a toggle in `sidebar.footer.action` plus the panel in the root-scoped `shell.overlay` list slot, fixed to the right edge (the overlay layer is `pointer-events: none` with auto children, so the panel interacts while the rest of the page stays clickable). The panel shares one snapshot store across both slots, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
 
 ### Why localStorage?
 
@@ -72,7 +72,7 @@ In the composer, type `@` and start typing a path fragment — a menu lists matc
 
 ### File tree + Markdown preview
 
-Click the **folder** button in the sidebar footer (bottom of the left rail) to open the file tree drawer. Directories expand lazily; click a `.md` file to render its preview below the tree. The tree always follows the currently open session's workspace.
+Click the **folder** button in the sidebar footer (bottom of the left rail) to open the Codex-style panel on the right edge. The left column is the lazy-loading project tree; clicking a file opens its preview in the right column — `.md` renders through the shared Markdown component, other text files show as plain text. The panel always follows the currently open session's workspace.
 
 ## Add your own skin
 
