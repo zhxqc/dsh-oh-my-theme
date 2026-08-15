@@ -1,159 +1,97 @@
 # dsh-oh-my-theme
 
-[中文](README.zh.md)
+[English](docs/README.en.md)
 
-Theme + file workspace plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) web GUI:
+<p align="center">
+  <img alt="npm" src="https://img.shields.io/npm/v/dsh-oh-my-theme?style=flat-square&logo=npm&logoColor=white&label=npm" />
+  <img alt="npm downloads" src="https://img.shields.io/npm/dm/dsh-oh-my-theme?style=flat-square&color=cb3837" />
+  <img alt="license" src="https://img.shields.io/github/license/zhxqc/dsh-oh-my-theme?style=flat-square" />
+  <img alt="GitHub stars" src="https://img.shields.io/github/stars/zhxqc/dsh-oh-my-theme?style=flat-square" />
+</p>
 
-1. **Skins and typography** — switch palettes and independently adjust conversation, file-tree, and file-preview text sizes under **Settings → General → Oh My Theme**.
-2. **@file mentions** — type `@` in the composer to search the current project and insert `@path` references the agent can read precisely.
-3. **Right-side file panel** — a Codex-style project tree and file preview that can be shown independently or side by side; Markdown includes syntax highlighting and other text files render as plain text.
+为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（dsh）网页端定制的「主题 + 文件工作台」插件：
 
-Built as a third-party plugin in the same shape as the shipped `ui-*` packages and the [dsh-at-file](https://github.com/FSMargoo/dsh-at-file) / [dsh-skin](https://github.com/KinGao294/dsh-skin) plugins. No build step: both halves are hand-written files served verbatim.
+1. **皮肤与文字显示** —— 在 **设置 → 通用设置 → Oh My Theme** 中切换配色，并分别调整对话流、文件树和文件预览字号。
+2. **@ 引用文件** —— 输入框里输入 `@` 即可搜索当前项目文件，插入 `@路径` 引用，让 AI 精确读取内容，避免盲目搜索消耗上下文。
+3. **右侧文件面板** —— Codex 风格的项目文件树与文件预览，可独立显示或分栏显示；Markdown 支持语法高亮，其他文本文件以纯文本展示。
 
-## Features
+按第三方插件的标准形态构建（与内置 `ui-*` 系列、[dsh-at-file](https://github.com/FSMargoo/dsh-at-file) 与 [dsh-skin](https://github.com/KinGao294/dsh-skin) 同构）。无构建步骤：宿主半与浏览器半都是手写文件、原样下发。
 
-- **3 starter skins** — `aurora` (dark indigo), `coffee` (light warm), `matrix` (dark terminal green) — plus the built-in appearance as the default.
-- **Live hover preview** — moving the pointer over a swatch paints the whole page with that skin (nothing persisted); only a click saves the choice.
-- **Global text display** — configure conversation, file-tree, and file-preview sizes plus the preview font; changes apply immediately and persist in the current browser.
-- **@file mentions** — a composer trigger source (`trigger: "@"`) that searches the session's workspace, ranks results, and inserts `@relative/path ` on pick. Picking a file also opens its right-side preview; directory picks append `/` so you can drill into folders.
-- **Lazy-loading file tree** — a workspace button left of Session log opens a project tree; the tree and `@` menu share VSCode Material Icon Theme icons. Directories load one level at a time, while `node_modules`/`.git`/build dirs are skipped.
-- **Independent views** — switch between project-tree-only, split tree + preview, and preview-only layouts. `.md` files use dsh's Shiki-backed Markdown renderer with syntax highlighting and copy controls; other UTF-8 text files show as plain text (512 KB cap, binary files rejected).
-- **zh / en bilingual** — all surfaces follow the GUI language.
+## 功能
 
-## How it works
+- **内置 3 套起步皮肤** —— `aurora`（暗色极光紫）、`coffee`（暖色咖啡棕）、`matrix`（暗色终端绿），外加默认跟随内置外观。
+- **悬停实时预览** —— 鼠标移到色卡上，整个页面实时套用该皮肤（不落盘）；只有点击才保存选择。
+- **全局文字显示** —— 在主题设置中分别配置对话流、文件树、文件预览字号，并选择文件预览字体；修改后立即生效并保存在当前浏览器。
+- **@ 引用文件** —— 注册输入框 `@` 触发源，按当前会话工作区搜索、排序，选中文件后插入 `@相对路径 ` 并在右侧打开预览；目录项末尾带 `/`，可继续向下钻取。
+- **懒加载文件树** —— Session log 左侧的工作区按钮打开项目树，文件树与 `@` 菜单共用 VSCode Material Icon Theme 图标；目录按需逐层加载，自动跳过 `node_modules` / `.git` / 构建产物目录。
+- **独立视图** —— 可切换“仅项目文件 / 文件与预览分栏 / 仅文件预览”。`.md` 使用 dsh 基于 Shiki 的 Markdown 渲染器，支持语法高亮和复制按钮；其他 UTF-8 文本以纯文本展示（512KB 上限、二进制拒绝读取）。
+- **中英双语** —— 所有界面跟随 GUI 语言。
 
-A dsh plugin package has two halves:
 
-- **Host half** (`lib/index.js`) — a Typert Remote Service named `workspaceFiles` with three read-only, workspace-scoped methods:
-  - `search(agent, query, signal)` — indexes the session's workspace (ignore rules + 5000-file cap) and returns ranked matches for the `@` picker;
-  - `listDir(agent, relPath, signal)` — lists one directory level, sorted dirs-first (lazy file tree);
-  - `readText(agent, relPath, signal)` — reads a UTF-8 text file (512 KB cap, NUL-byte binary detection).
+### 数据存放在哪儿？
+localStorage
 
-  Every method resolves paths strictly inside `agent.session.header.cwd` and rejects traversal. Nothing writes or executes. The typert manifest (`TYPERT_MANIFEST` + `ctx.typert.register`) is what lets the browser half call these methods over the same wire the shipped `ui-*` packages use.
-- **Browser half** (`lib/client.js`) — the whole UI. DSH's `dsh-client-modules` picks it up through the `dsh.client` declaration in `package.json`, serves the bundle at `/plugins/dsh-oh-my-theme/client.js`, and the vendored cordis Loader executes it through `window.__ModuleLoader__.load`.
 
-On activation the browser half:
+## 安装
 
-1. **Registers each skin** with the built-in theme service (`ctx.theme.register(...)`); the ThemePresenter applies token overrides as inline custom properties on `<body>`.
-2. **Restores the saved skin** from `localStorage` (`dsh-oh-my-theme:skin`).
-3. **Restores typography preferences** from localStorage and immediately applies conversation, file-tree, and file-preview sizes plus the preview font through page-level CSS variables.
-4. **Mounts the `workspaceFiles` remote** (`ctx.remote.$mount(OHMY_REMOTE)` → `ctx.reflect.get("remote.workspaceFiles")`).
-5. **Registers the `@` trigger source** with `inputTriggers` — one index fetch per session (60 s TTL), ranked in-memory per keystroke.
-6. **Mounts the right-side file panel** — the launcher sits left of Session log. Existing conversations use a `details` column expandable up to 860px; blank sessions fall back to a fixed right-edge panel. The panel only claims either presentation while open, shares one snapshot store, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
-
-### Why localStorage?
-
-The Host settings wire only exposes an allowlisted set of namespaces to browser clients (`dsh-host-apiproxy`'s `WEB_SETTINGS_NAMESPACES`), so a third-party namespace would answer `settings-not-exposed`. `localStorage` matches that boundary for visual preferences while surviving reloads on the same origin.
-
-## Install
-
-The plugin is a standard dsh bundle: install it with the `dsh plugin` command (which forwards to pnpm in the profile directory).
+本插件是标准 dsh bundle。发布到 npm 后，使用包名安装到 `web` profile：
 
 ```sh
-# from the project root — installs into your web profile
+dsh plugin --profile web add dsh-oh-my-theme
+```
+
+本地开发或尚未发布时，也可以按项目路径安装：
+```sh
+# 在项目根目录安装
 dsh plugin --profile web add .
-# or from anywhere, by path:
+# 或在任意位置按绝对路径安装
 dsh plugin --profile web add /path/to/dsh-oh-my-theme
 ```
 
-Then open the web GUI:
+然后启动网页端：
 
 ```sh
 dsh web
 ```
 
-## Use
+## 使用
 
-### Skins
+### 皮肤
 
-Open **Settings → General** — the **Oh My Theme** row sits below the built-in **Appearance** row. Hover a swatch to preview that skin live across the whole page (nothing is saved yet); click to commit. The same row controls conversation, file-tree, and file-preview text sizes plus the preview font. Changes apply immediately and persist in the current browser. **Default** follows the built-in appearance.
+打开 **设置 → 通用设置**，「Oh My Theme」行位于内置「外观」行下方。把鼠标移到色卡上可实时预览整个页面的效果（此时不会保存）；点击才确认生效。同一区域还可分别设置对话流、文件树、文件预览字号以及预览字体，修改后立即生效并保存在当前浏览器中。「默认」恢复跟随内置外观。
 
-### @file mentions
+### @ 引用文件
 
-In the composer, type `@` and start typing a path fragment — a menu lists matching files and directories of the current project. Pick a file to insert `@path ` into the draft and open its preview on the right; the agent reads the file precisely instead of searching blindly. Directory results append `/`, so `@src/` keeps narrowing without opening a preview.
+在输入框输入 `@` 并继续输入路径片段 —— 弹出菜单列出当前项目的匹配文件和目录。选中文件会插入 `@路径 ` 并在右侧自动打开预览；AI 会精确读取该文件，而不是盲目搜索。目录项末尾带 `/`，输入 `@src/` 可以继续缩小范围，但不会打开预览。
 
-### File tree + Markdown preview
+### 文件树 + Markdown 预览
 
-Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Shiki Markdown renderer with highlighted fenced code and localized copy buttons, while other text files show as plain text.
-
-## Add your own skin
-
-Open `lib/client.js`, find the `SKINS` catalog, and add one entry:
-
-```js
-{
-  id: "my-skin",                    // unique id; never "system"
-  colorScheme: "dark",              // "light" | "dark" — base palette
-  tokens: {
-    "--dsw-alias-bg-base": "#0b0e1a",
-    // ... any subset of the tokens below; omitted tokens keep the base theme
-  }
-}
-```
-
-Then add two dictionary keys (zh + en), e.g. `"theme.my-skin": "我的皮肤"` / `"theme.my-skin": "My Skin"`. Reload the page — the picker card, the registry, and the persisted restore all derive from the `SKINS` array automatically.
-
-### Token reference
-
-The palette tokens you can override (concrete CSS colors, no `var()` indirection — the same set used by the built-in stylesheets):
-
-| Token | Role |
-| --- | --- |
-| `--dsw-alias-bg-base` | Root background |
-| `--dsw-alias-bg-layer-1/2/3` | Surface elevations (cards, inputs, bubbles…) |
-| `--dsw-alias-bg-overlay` | Overlay / popover surface |
-| `--dsw-alias-border-l1/l2` | Hairline borders |
-| `--dsw-alias-label-primary/secondary/tertiary` | Text emphasis levels |
-| `--dsw-alias-brand-primary` / `--dsw-alias-brand-text` | Accent color and its foreground |
-| `--dsw-alias-button-primary-hover` / `--dsw-alias-button-primary-dimmed` | Primary button states |
-| `--dsw-alias-state-business-primary/tertiary` | Business/status accent |
-| `--dsw-alias-interactive-bg-hover/active` | Hover/press fills |
-| `--dsw-alias-markdown-code-block` / `--dsw-alias-markdown-inline-code` | Code surfaces |
-| `--dsw-specific-sidebar-fill` / `--dsw-specific-sidebar-nav-item-active` / `--dsw-specific-sidebar-nav-item-hover` | Sidebar |
-| `--dsw-alias-scrollbar-bg-l1/l2` / `--dsw-alias-scrollbar-hover-l1/l2` | Scrollbars |
-
-Tip: keep at least `bg-base`/`bg-layer-1`, `label-primary`/`label-secondary`, `brand-primary`, and one border token consistent for contrast; skins that only override part of the surface stack usually look broken.
-
-## Project structure
-
-```
-dsh-oh-my-theme/
-├── package.json        # dsh.bundle.patch + dsh.client declarations
-├── cordis.patch.yml    # inserts the `oh-my-theme` loader row
-├── lib/
-│   ├── index.js        # host half — workspaceFiles Typert remote
-│   ├── client.js       # browser half — skins, @-mentions, file tree
-│   └── types/          # type stubs
-├── test/host.test.mjs  # host service unit tests (node --test)
-├── test/client.smoke.mjs # browser bundle smoke test
-├── THIRD_PARTY_NOTICES.md # notices for Material Icon Theme and other third-party assets
-├── README.md / README.zh.md
-└── LICENSE
-```
-
-## Development
-
-```sh
-node --test test/host.test.mjs   # host service tests
-node test/client.smoke.mjs      # client bundle smoke test
-```
+点击 Session log 左侧的**右栏**按钮打开 Codex 风格面板。面板标题栏可切换“仅项目文件 / 分栏 / 仅文件预览”；文字大小统一在 **设置 → 通用设置 → Oh My Theme** 中配置。`.md` 使用 dsh 共享的 Shiki Markdown 渲染器，围栏代码支持语法高亮和中文复制按钮；其他文本文件以纯文本展示。面板始终跟随当前打开会话的工作区。
 
 ## TODO
 
-- [ ] **Read-only Git integration (first phase)**
-  - Add Changes and Commits views to the right-side workspace;
-  - Group staged, unstaged, and untracked files with status markers and file-level Diff previews;
-  - Paginate commit summaries, authors, and timestamps, with per-commit file lists and Diff details;
-  - Expose only fixed read-only Git methods from the host, validating workspace paths and commit hashes while capping execution time and output size;
-  - Prefer dsh's built-in `DiffBlock` instead of adding a heavy client library to the current build-free browser bundle.
-- [ ] **Git write operations (second-phase evaluation)** — staging, commits, branch switching, and conflict resolution require additional confirmation, permission, and recovery design and are outside the first phase.
+- [ ] **Git 只读集成（优先）**
+  - 在右侧工作台增加“更改”和“提交”视图；
+  - “更改”按已暂存、未暂存、未跟踪分组，文件支持状态标识和 Diff 预览；
+  - “提交”分页展示提交摘要、作者和时间，点击后查看文件列表与提交 Diff；
+  - 宿主半只开放固定的只读 Git 方法，校验工作区、路径、提交哈希，并限制执行时间和输出大小；
+  - Diff 优先复用 dsh 内置 `DiffBlock`，避免给当前无构建步骤的浏览器 bundle 引入重型组件库。
+- [ ] **Git 写操作（二期评估）** —— 暂存、取消暂存、提交、分支切换和冲突处理需要额外的确认、权限与恢复设计，不纳入首期。
 
-## Uninstall
+## 卸载
 
 ```sh
 dsh plugin --profile web remove dsh-oh-my-theme
 ```
 
-## License
+## 许可证
 
 [MIT](LICENSE)
+
+---
+
+### Star 历史
+
+<p align="center">
+  <img alt="Star History" src="https://api.star-history.com/svg?repos=zhxqc/dsh-oh-my-theme&type=Date" width="640" />
+</p>
