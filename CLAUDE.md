@@ -26,3 +26,9 @@ npm pack --dry-run
 ```
 
 When changing user-visible behavior, update both README files in the same commit.
+
+## Release workflow
+
+- Keep `package.json#version` and the release tag in sync; use an annotated `vX.Y.Z` tag and never reuse an existing version or tag.
+- Before publishing, run the host/client tests, `pnpm install --frozen-lockfile`, and `npm pack --dry-run`.
+- Publish to the npm registry only after the release commit and tag are ready; push the branch and tag explicitly.
