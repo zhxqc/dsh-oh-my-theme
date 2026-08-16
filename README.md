@@ -38,7 +38,7 @@
 - 按当前会话工作区搜索、排序；选中文件后插入 `@相对路径 `，并自动在右侧打开预览。
 - 目录项末尾带 `/`，输入 `@src/` 可继续向下钻取。
 
-<img src="docs/assets/at.png" alt="@ 引用文件" width="720" />
+<img src="docs/assets/at.png" alt="@ 引用文件" width="328" />
 
 ### 📁 右侧文件面板（Codex 风格）
 
@@ -50,7 +50,7 @@
 
 | 工作区入口 | 文件面板 | Markdown 预览 |
 | --- | --- | --- |
-| <img src="docs/assets/slider-icon.png" alt="工作区入口" /> | <img src="docs/assets/file-sys.png" alt="文件面板" /> | <img src="docs/assets/md-preview.png" alt="Markdown 预览" /> |
+| <img src="docs/assets/slider-icon.png" alt="工作区入口" width="210" /> | <img src="docs/assets/file-sys.png" alt="文件面板" width="360" /> | <img src="docs/assets/md-preview.png" alt="Markdown 预览" width="360" /> |
 
 > **数据存放位置**：皮肤、字号、字体等偏好保存在当前浏览器的 `localStorage` 中，不会影响会话数据。
 
