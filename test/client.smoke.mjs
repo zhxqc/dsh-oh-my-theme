@@ -14,6 +14,7 @@ const externalOpenCalls = [];
 const rootStyleValues = new Map();
 const mockStyles = new Map();
 const documentClickListeners = new Set();
+const documentPointerListeners = new Set();
 let sessionSnapshot = { current: 'session-1', byId: { 'session-1': { blank: false, cwd: '/workspace' } } };
 let sessionListListener;
 
@@ -85,8 +86,14 @@ const sandbox = {
   },
   document: {
     body: { contains: () => true },
-    addEventListener: (type, listener) => { if (type === 'click') documentClickListeners.add(listener); },
-    removeEventListener: (type, listener) => { if (type === 'click') documentClickListeners.delete(listener); },
+    addEventListener: (type, listener) => {
+      if (type === 'click') documentClickListeners.add(listener);
+      if (type === 'pointerdown') documentPointerListeners.add(listener);
+    },
+    removeEventListener: (type, listener) => {
+      if (type === 'click') documentClickListeners.delete(listener);
+      if (type === 'pointerdown') documentPointerListeners.delete(listener);
+    },
     documentElement: { style: {
       setProperty: (name, value) => rootStyleValues.set(name, value),
       removeProperty: (name) => rootStyleValues.delete(name),
@@ -278,6 +285,9 @@ assert(balanceInjected.scope.getSnapshot().data?.balance_infos?.[0]?.total_balan
 balanceInjected.onToggle();
 const balanceEl = balanceLauncher.component({ t: (key) => key, ...balanceInjected });
 assert(balanceEl !== null && balanceEl.a[0] === 'div', 'balance utility renders a wrapper');
+balanceEl.a[1].ref.current = { contains: (target) => target === 'inside-balance' };
+for (const listener of documentPointerListeners) listener({ target: 'outside-balance' });
+assert(balanceInjected.scope.getSnapshot().open === false, 'clicking outside closes the balance popover');
 
 // Picking an @ file only inserts the mention; preview opens on an explicit click.
 const picked = registered.source.onPick({ candidate: candidates.find((c) => c.value === 'README.md'), session: mockSession });

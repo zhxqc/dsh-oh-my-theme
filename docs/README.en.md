@@ -68,6 +68,7 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 - The Host resolves `DEEPSEEK_API_KEY` through DSH's credentials service and calls the official `/user/balance` endpoint.
 - The browser receives only CNY/USD totals, granted balance, topped-up balance, and the fetch time; the API key never crosses into the client or logs.
 - The balance loads after the host remote mounts, supports manual refresh, and reports missing credentials or an outdated host without exposing provider response details.
+- There is no background polling by default; a refresh makes one lightweight HTTPS request on demand.
 
 ## How it works
 
