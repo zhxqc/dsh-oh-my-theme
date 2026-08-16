@@ -32,7 +32,7 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 
 > Type `@` in the composer to search the current project and insert `@path` references the agent can read precisely — no blind searching.
 
-- Searches and ranks the current session's workspace; picking a file inserts `@relative/path ` and opens its preview in the right panel.
+- Searches and ranks the current session's workspace; picking a file inserts `@relative/path `, while clicking the reference text in the composer opens its preview in the right panel.
 - Directory picks append `/` so `@src/` keeps narrowing.
 
 ### 📁 Right-side file panel (Codex-style)
@@ -40,6 +40,9 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 > A workspace button left of Session log opens the panel. Switch between project-tree-only, split tree + preview, and preview-only layouts; Markdown and common source files get syntax highlighting.
 
 - **Lazy-loading file tree** — directories load one level at a time, skipping `node_modules` / `.git` / build dirs; the tree and `@` menu share VSCode Material Icon Theme icons.
+- **Quick Open** — click the search button or press `Ctrl/Cmd + P` to filter by file name/path and open a result; it reuses the workspace index already used by `@` mentions.
+- **Multi-file preview tabs** — opening several files keeps independent preview tabs that can be switched or closed; tabs are session-scoped and file contents load on demand.
+- **Hidden dependency filtering** — dotfiles and dependency/build trees such as `node_modules`, `.pnpm`, `.git`, and `dist` stay out of both the tree and the `@` menu.
 - **Independent views** — the panel header toggles project-tree-only / split / preview-only.
 - **Markdown and code preview** — `.md` files use dsh's Markdown renderer; common JS/TS/TSX, JSON, HTML/CSS, Vue, Python, Go, Rust, Java, shell, YAML, SQL, and Dockerfile sources reuse Shiki highlighting and copy controls. Unknown UTF-8 text formats fall back to plain text (512 KB cap, binary files rejected).
 
@@ -118,11 +121,11 @@ Open **Settings → General** — the **Oh My Theme** row sits below the built-i
 
 ### @file mentions
 
-In the composer, type `@` and start typing a path fragment — a menu lists matching files and directories of the current project. Pick a file to insert `@path ` into the draft and open its preview on the right; the agent reads the file precisely instead of searching blindly. Directory results append `/`, so `@src/` keeps narrowing without opening a preview.
+In the composer, type `@` and start typing a path fragment — a menu lists matching files and directories of the current project. Pick a file to insert `@path ` into the draft; click the reference text in the composer to open its preview on the right. The agent reads the file precisely instead of searching blindly. Directory results append `/`, so `@src/` keeps narrowing without opening a preview.
 
 ### File tree + file preview
 
-Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views, and the whole panel can be resized up to 1200px. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Markdown renderer; recognized source files are mapped from their filename or extension to a Shiki language and render with highlighting and localized copy buttons. Unknown text formats remain plain text.
+Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views, and the whole panel can be resized up to 1200px. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Markdown renderer; recognized source files are mapped from their filename or extension to a Shiki language and render with highlighting and localized copy buttons. Unknown text formats remain plain text. Click the search icon or press `Ctrl/Cmd + P` to Quick Open a file; multiple opened files appear as preview tabs, and closing the active tab selects its neighbor.
 
 ### Git changes + commits
 

@@ -13,6 +13,7 @@ const storageWrites = [];
 const externalOpenCalls = [];
 const rootStyleValues = new Map();
 const mockStyles = new Map();
+const documentClickListeners = new Set();
 let sessionSnapshot = { current: 'session-1', byId: { 'session-1': { blank: false, cwd: '/workspace' } } };
 let sessionListListener;
 
@@ -82,6 +83,8 @@ const sandbox = {
   },
   document: {
     body: { contains: () => true },
+    addEventListener: (type, listener) => { if (type === 'click') documentClickListeners.add(listener); },
+    removeEventListener: (type, listener) => { if (type === 'click') documentClickListeners.delete(listener); },
     documentElement: { style: {
       setProperty: (name, value) => rootStyleValues.set(name, value),
       removeProperty: (name) => rootStyleValues.delete(name),
@@ -260,19 +263,19 @@ assert(drawerScope.getSnapshot().sessionId === 'session-1', 'drawer scope follow
 assert(drawerScope.getSnapshot().open === false, 'drawer starts closed');
 assert(drawerScope.getSnapshot().viewMode === 'tree', 'file panel starts in project-tree view');
 
-// Picking an @ file both inserts the mention and opens its preview on the right.
+// Picking an @ file only inserts the mention; preview opens on an explicit click.
 const picked = registered.source.onPick({ candidate: candidates.find((c) => c.value === 'README.md'), session: mockSession });
 assert(picked.text === '@README.md ', 'onPick inserts "@README.md "');
-const mentionPanel = registered.slots.find((r) => r.config.name === 'details');
-assert(mentionPanel && mentionPanel.config.priority === -10, '@ file pick mounts a lower-priority details replacement');
-assert(drawerScope.getSnapshot().open === true, '@ file pick opens the file panel');
-assert(drawerScope.getSnapshot().viewMode === 'preview', '@ file pick opens standalone preview mode');
-assert(registered.layoutCalls.at(-1) === 'open', '@ file pick opens the details column');
+assert(drawerScope.getSnapshot().open === false, '@ file pick does not open the file panel');
+assert(drawerScope.getSnapshot().preview === null, '@ file pick does not load a preview');
+for (const listener of documentClickListeners) listener({
+  defaultPrevented: false,
+  target: { tagName: 'TEXTAREA', value: '@README.md ', selectionStart: 5 }
+});
 await new Promise((resolve) => setTimeout(resolve, 0));
-assert(drawerScope.getSnapshot().preview?.relative === 'README.md', '@ file pick loads the selected preview');
-mentionPanel.config.inject().onClose();
-assert(drawerScope.getSnapshot().open === false, 'closing the @ preview hides the panel');
-assert(!registered.slots.some((r) => r.config.name === 'details'), 'closing the file panel releases built-in details');
+assert(drawerScope.getSnapshot().open === true, 'clicking an @ reference opens the file panel');
+assert(drawerScope.getSnapshot().preview?.relative === 'README.md', 'clicking an @ reference opens its preview');
+registered.slots.find((r) => r.config.name === 'details')?.config.inject().onClose();
 
 sessionSnapshot = { current: 'session-1', byId: { 'session-1': { blank: true, cwd: '/workspace' } } };
 const pickedDir = registered.source.onPick({ candidate: { value: 'src' }, session: mockSession });
@@ -283,8 +286,8 @@ assert(Array.isArray(registered.source.lexicon(mockSession)), 'lexicon returns t
 // file tree panel
 // toggle opens the drawer and lazily loads the root
 launcherInjected.onToggle();
-const overlay = registered.slots.find((r) => r.config.id === 'oh-my-theme-file-panel');
-assert(overlay && overlay.config.id === 'oh-my-theme-file-panel', 'blank session uses the root overlay panel');
+const overlay = registered.slots.find((r) => r.config.name === 'details');
+assert(overlay && overlay.config.priority === -10, 'blank session uses the native details column');
 assert(launcher.config.inject().scope === overlay.config.inject().scope, 'launcher and panel share one drawer scope');
 const overlayInjected = overlay.config.inject();
 assert(drawerScope.getSnapshot().open === true, 'top-right launcher opens the panel');
@@ -311,13 +314,12 @@ assert(drawerScope.getSnapshot().gitCommit?.subject === 'Initial commit', 'commi
 assert(drawerScope.getSnapshot().gitCommitDiff?.content.includes('all'), 'commit diff loads');
 overlayInjected.onSetWorkspace('files');
 
-// When a blank session becomes a real conversation, keep the panel open but
-// migrate it from the fixed overlay into dsh's native details column.
+// When a blank session becomes a real conversation, keep the native details
+// panel open without switching presentation modes.
 sessionSnapshot = { current: 'session-1', byId: { 'session-1': { blank: false, cwd: '/workspace' } } };
 sessionListListener();
 await new Promise((resolve) => setTimeout(resolve, 0));
 assert(drawerScope.getSnapshot().open === true, 'panel stays open when the session becomes non-blank');
-assert(!registered.slots.some((r) => r.config.id === 'oh-my-theme-file-panel'), 'session transition releases the overlay panel');
 assert(registered.slots.some((r) => r.config.name === 'details' && r.config.priority === -10), 'session transition mounts the native details panel');
 
 // expand a directory loads its children lazily
@@ -336,6 +338,27 @@ assert(preview.relative === 'README.md', 'preview carries the relative path');
 assert(preview.content.includes('# Hello'), 'preview carries the markdown content');
 assert(preview.kind === 'markdown', 'md files preview as markdown');
 assert(drawerScope.getSnapshot().viewMode === 'preview', 'tree selection can display preview independently');
+assert(drawerScope.getSnapshot().tabs.length === 1, 'first file creates one preview tab');
+
+// Opening another file keeps the first preview available as a tab.
+overlayInjected.onSelectFile('src/index.ts');
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(drawerScope.getSnapshot().tabs.length === 2, 'second file creates a second preview tab');
+assert(drawerScope.getSnapshot().activeTabId === 'src/index.ts', 'new file tab becomes active');
+overlayInjected.onSelectTab('README.md');
+assert(drawerScope.getSnapshot().preview?.relative === 'README.md', 'tab switching restores the previous preview');
+overlayInjected.onCloseTab('README.md');
+assert(drawerScope.getSnapshot().tabs.length === 1, 'closing a tab removes it');
+assert(drawerScope.getSnapshot().activeTabId === 'src/index.ts', 'closing active tab selects the remaining tab');
+
+// Quick Open reuses the @ index and exposes keyboard-driven state.
+await overlayInjected.onQuickOpen();
+assert(drawerScope.getSnapshot().quickOpen.open === true, 'Quick Open opens from the panel action');
+overlayInjected.onQuickOpenQuery('README');
+overlayInjected.onQuickOpenKey({ key: 'Enter', preventDefault() {} });
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(drawerScope.getSnapshot().quickOpen.open === false, 'Quick Open closes after selecting a result');
+assert(drawerScope.getSnapshot().activeTabId === 'README.md', 'Quick Open selects the requested file');
 
 // relative markdown images are rewritten to the host endpoint
 const mdPreview = await (async () => {
@@ -394,8 +417,8 @@ launcherInjected.onToggle();
 const panelEl = overlay.component({ t, ...overlayInjected });
 assert(panelEl !== null && panelEl.a[0] === 'div', 'FileSidePanel renders a <div> when open');
 assert(panelEl.a[1].ref?.current === null, 'file panel root binds the resize ref');
-assert(panelEl.a[1].style.width === 'min(1200px, calc(100vw - 48px))', 'overlay file panel supports the enlarged 1200px maximum');
-assert(panelEl.a[1].children[0].a[1]['aria-label'] === '调整侧边面板宽度', 'entire overlay panel exposes the resize handle');
+assert(panelEl.a[1].style.position === 'relative' && panelEl.a[1].style.height === '100%', 'blank-session file panel participates in the details layout');
+assert(panelEl.a[1].children[0].a[1]['aria-label'] === '调整侧边面板宽度', 'file panel exposes the resize handle');
 overlayInjected.onClose();
 const closedEl = overlay.component({ t, ...overlayInjected });
 assert(closedEl === null, 'FileSidePanel returns null while closed');

@@ -118,6 +118,11 @@ test('image endpoint rejects unknown sessions and missing params', async () => {
 });
 
 test('search indexes the workspace and ignores node_modules/.git', async () => {
+	await mkdir(path.join(root, '.pnpm'), { recursive: true });
+	await mkdir(path.join(root, '.hidden-dir'), { recursive: true });
+	await writeFile(path.join(root, '.env'), 'SECRET=hidden\n');
+	await writeFile(path.join(root, '.pnpm', 'store.js'), 'ignored\n');
+	await writeFile(path.join(root, '.hidden-dir', 'secret.txt'), 'ignored\n');
 	const entries = await runtime.search(fakeAgent, '', undefined);
 	const relatives = entries.map((entry) => entry.relative).sort();
 	assert.ok(relatives.includes('README.md'), 'root file indexed');
@@ -127,6 +132,8 @@ test('search indexes the workspace and ignores node_modules/.git', async () => {
 	assert.ok(!relatives.includes('node_modules'), 'node_modules ignored');
 	assert.ok(!relatives.includes('.git'), '.git ignored');
 	assert.ok(!relatives.includes('node_modules/dep.js'), 'node_modules content ignored');
+	assert.ok(!relatives.some((relative) => relative.startsWith('.')), 'hidden files and directories ignored');
+	assert.ok(!relatives.some((relative) => relative.startsWith('.pnpm')), '.pnpm ignored');
 });
 
 test('search filters and ranks by query', async () => {
