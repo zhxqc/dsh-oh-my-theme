@@ -30,11 +30,11 @@ test('host plugin registers a valid Typert manifest', () => {
 			assert.ok(parameter.codec.typeSymbol.includes('#'), 'codec has a type symbol');
 		}
 	}
-	assert.equal(TYPERT_MANIFEST.invocations.length, 8);
+	assert.equal(TYPERT_MANIFEST.invocations.length, 9);
 	// The agent lookup codec must match the provider's wire identity exactly.
 	for (const invocation of TYPERT_MANIFEST.invocations) {
 		const agent = invocation.parameters.find((p) => p.source === 'lookup');
-		assert.equal(agent.codec.typeSymbol, '@deepseek-ai/dsh-session/types#SessionId');
+		if (agent !== undefined) assert.equal(agent.codec.typeSymbol, '@deepseek-ai/dsh-session/types#SessionId');
 	}
 });
 
@@ -58,8 +58,8 @@ test('host plugin mounts in a real cordis context', async () => {
 	assert.ok(pluginCtx, 'plugin apply ran');
 	assert.ok(pluginCtx.get('workspaceFiles'), 'workspaceFiles service registered in plugin scope');
 	const mine = pluginCtx.get('typert').local.list().filter((d) => d.service === 'workspaceFiles');
-	assert.equal(mine.length, 8, 'eight workspaceFiles invocations committed');
-	assert.deepEqual(mine.map((d) => d.method), ['search', 'listDir', 'readText', 'gitStatus', 'gitDiff', 'gitLog', 'gitShow', 'gitCommitDiff']);
+	assert.equal(mine.length, 9, 'nine workspaceFiles invocations committed');
+	assert.deepEqual(mine.map((d) => d.method), ['balance', 'search', 'listDir', 'readText', 'gitStatus', 'gitDiff', 'gitLog', 'gitShow', 'gitCommitDiff']);
 	assert.equal(registeredRoutes.length, 1, 'image route registered');
 	assert.equal(registeredRoutes[0].path, '/api/oh-my-theme/image', 'image route path correct');
 });
@@ -134,6 +134,42 @@ test('search indexes the workspace and ignores node_modules/.git', async () => {
 	assert.ok(!relatives.includes('node_modules/dep.js'), 'node_modules content ignored');
 	assert.ok(!relatives.some((relative) => relative.startsWith('.')), 'hidden files and directories ignored');
 	assert.ok(!relatives.some((relative) => relative.startsWith('.pnpm')), '.pnpm ignored');
+});
+
+test('DeepSeek balance uses host credentials and returns only public fields', async () => {
+	const ctx = new Context();
+	ctx.provide('credentials', {
+		resolve: async (ref) => {
+			assert.equal(ref, 'DEEPSEEK_API_KEY');
+			return { value: 'test-secret', source: 'test' };
+		}
+	});
+	const balanceRuntime = new WorkspaceFilesRuntime(ctx);
+	const originalFetch = globalThis.fetch;
+	let request;
+	globalThis.fetch = async (url, options) => {
+		request = { url, options };
+		return {
+			ok: true,
+			json: async () => ({
+				is_available: true,
+				balance_infos: [{ currency: 'CNY', total_balance: '12.34', granted_balance: '1.20', topped_up_balance: '11.14', secret: 'must drop' }],
+				secret: 'must drop'
+			})
+		};
+	};
+	try {
+		const result = await balanceRuntime.balance();
+		assert.equal(request.url, 'https://api.deepseek.com/user/balance');
+		assert.equal(request.options.headers.Authorization, 'Bearer test-secret');
+		assert.deepEqual(result, {
+			is_available: true,
+			balance_infos: [{ currency: 'CNY', total_balance: '12.34', granted_balance: '1.20', topped_up_balance: '11.14' }],
+			fetched_at: result.fetched_at
+		});
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
 });
 
 test('search filters and ranks by query', async () => {

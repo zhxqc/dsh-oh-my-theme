@@ -61,11 +61,20 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
   <img src="assets/git-timeline.png" alt="Git commit timeline and commit diff" width="49%" />
 </p>
 
+### DeepSeek live balance
+
+> Click the balance icon beside Session log to read the current official DeepSeek account balance. This feature intentionally shows balance only; it does not estimate request cost.
+
+- The Host resolves `DEEPSEEK_API_KEY` through DSH's credentials service and calls the official `/user/balance` endpoint.
+- The browser receives only CNY/USD totals, granted balance, topped-up balance, and the fetch time; the API key never crosses into the client or logs.
+- The compact popover supports manual refresh and reports missing credentials or an unavailable endpoint without exposing provider response details.
+
 ## How it works
 
 A dsh plugin package has two halves:
 
-- **Host half** (`lib/index.js`) — a Typert Remote Service named `workspaceFiles` with eight read-only, workspace-scoped methods:
+- **Host half** (`lib/index.js`) — a Typert Remote Service named `workspaceFiles` with nine read-only methods:
+  - `balance(signal)` — fetches a sanitized real-time balance from the official DeepSeek account API; the key is resolved host-side through DSH credentials;
   - `search(agent, query, signal)` — indexes the session's workspace (ignore rules + 5000-file cap) and returns ranked matches for the `@` picker;
   - `listDir(agent, relPath, signal)` — lists one directory level, sorted dirs-first (lazy file tree);
   - `readText(agent, relPath, signal)` — reads a UTF-8 text file (512 KB cap, NUL-byte binary detection).

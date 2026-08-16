@@ -71,6 +71,14 @@
 </p>
 
 
+### DeepSeek 实时余额
+
+> 点击 Session log 左侧的余额图标，读取官方 DeepSeek 账户余额；本功能只展示实时余额，不计算单次消费。
+
+- 宿主端通过 DSH credentials 服务解析 `DEEPSEEK_API_KEY`，调用官方 `/user/balance` 接口。
+- 浏览器只收到 `CNY` / `USD` 的总余额、赠送余额、充值余额和更新时间，API key 不会进入客户端或日志。
+- 余额按钮支持手动刷新；未配置密钥或官方接口不可用时显示明确错误。
+
 ## 安装
 
 本插件是标准 dsh bundle。发布到 npm 后，使用包名安装到 `web` profile：

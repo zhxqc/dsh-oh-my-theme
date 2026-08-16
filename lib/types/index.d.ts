@@ -69,12 +69,28 @@ export interface GitLogResult {
 	nextSkip: number;
 }
 
+/** One currency balance returned by the official DeepSeek account API. */
+export interface DeepSeekBalanceInfo {
+	currency: 'CNY' | 'USD';
+	total_balance: string;
+	granted_balance: string;
+	topped_up_balance: string;
+}
+
+/** Sanitized real-time DeepSeek balance; the API key never crosses this boundary. */
+export interface DeepSeekBalance {
+	is_available: boolean;
+	balance_infos: readonly DeepSeekBalanceInfo[];
+	fetched_at: string;
+}
+
 /**
  * Typert Remote Service giving the browser half read-only, workspace-scoped
  * file access. Registered under the `workspaceFiles` Cordis key; methods are
  * invoked by the client through `ctx.remote.$mount` + `remote.workspaceFiles`.
  */
 export declare class WorkspaceFilesRuntime {
+	balance(signal?: AbortSignal): Promise<DeepSeekBalance>;
 	/**
 	 * Index the session's workspace and return query-matching entries.
 	 * @param agent - session agent injected by the typert lookup provider.

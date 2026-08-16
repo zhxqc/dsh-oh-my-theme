@@ -55,6 +55,8 @@ const primitives = {
   IconRightUpOutline16: Icon,
   IconSkillOutline16: Icon,
   IconTriangleRightFill14: Icon,
+  IconRefreshOutline16: Icon,
+  Tooltip: ({ children }) => children,
 };
 
 const requireMock = (spec) => {
@@ -153,6 +155,11 @@ const mockFilesRemote = {
     files: [{ relative: 'README.md', previousPath: null, status: 'M' }],
   } }),
   gitCommitDiff: async (_sessionId, _hash, relPath) => ({ ok: true, value: { content: `commit diff ${relPath || 'all'}`, truncated: false } }),
+  balance: async () => ({ ok: true, value: {
+    is_available: true,
+    balance_infos: [{ currency: 'CNY', total_balance: '12.34', granted_balance: '1.20', topped_up_balance: '11.14' }],
+    fetched_at: '2026-08-16T04:00:00.000Z',
+  } }),
 };
 
 const workspaces = {
@@ -220,7 +227,7 @@ for (const s of plugin.SKINS) assert(zh[`theme.${s.id}`] && en[`theme.${s.id}`],
 // remote
 assert(registered.remoteMounted !== null, 'remote.$mount called');
 assert(registered.remoteMounted.package === 'dsh-oh-my-theme', 'remote package id correct');
-assert(registered.remoteMounted.descriptors.length === 8, 'eight remote descriptors');
+assert(registered.remoteMounted.descriptors.length === 9, 'nine remote descriptors');
 // Client descriptors must match the host manifest on every wire-visible field;
 // schemas are functions (not JSON-serializable), so compare them structurally.
 function codecEqual(a, b) {
@@ -262,6 +269,15 @@ assert(!registered.slots.some((r) => r.config.name === 'details'), 'file panel d
 assert(drawerScope.getSnapshot().sessionId === 'session-1', 'drawer scope follows the current session');
 assert(drawerScope.getSnapshot().open === false, 'drawer starts closed');
 assert(drawerScope.getSnapshot().viewMode === 'tree', 'file panel starts in project-tree view');
+const balanceLauncher = registered.slots.find((r) => r.config.id === 'oh-my-theme-balance');
+assert(balanceLauncher && balanceLauncher.config.name === 'conversation.session.header.utilities', 'balance button sits in Session header utilities');
+const balanceInjected = balanceLauncher.config.inject();
+assert(balanceInjected.scope.getSnapshot().open === false, 'balance starts closed');
+balanceInjected.onToggle();
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(balanceInjected.scope.getSnapshot().data?.balance_infos?.[0]?.total_balance === '12.34', 'balance loads from the host remote');
+const balanceEl = balanceLauncher.component({ t: (key) => key, ...balanceInjected });
+assert(balanceEl !== null && balanceEl.a[0] === 'div', 'balance utility renders a wrapper');
 
 // Picking an @ file only inserts the mention; preview opens on an explicit click.
 const picked = registered.source.onPick({ candidate: candidates.find((c) => c.value === 'README.md'), session: mockSession });
