@@ -41,6 +41,7 @@ const runtimeClient = {
 const Icon = (props) => ({ type: 'Icon', props });
 const primitives = {
   MarkdownText: (props) => ({ type: 'MarkdownText', props }),
+  DiffBlock: (props) => ({ type: 'DiffBlock', props }),
   IconBrowseOutline16: Icon,
   IconCloseOutline16: Icon,
   IconCodeOutline16: Icon,
@@ -130,6 +131,25 @@ const mockFilesRemote = {
       ? { content: '# Guide\n\n![logo](./img/logo.png)\n\n<img src="./img/banner.png" alt="banner" width="720" />\n\n<p align="center"><a href="https://npmjs.com"><img alt="npm" src="https://img.shields.io/npm/v/demo" /></a></p>\n', truncated: false }
       : { content: '# Hello\n\nSome *markdown*.', truncated: false },
   }),
+  gitStatus: async () => ({ ok: true, value: {
+    branch: 'main',
+    detached: false,
+    files: [
+      { relative: 'README.md', previousPath: null, code: ' M', kind: 'modified', staged: false, unstaged: true, untracked: false, conflicted: false },
+      { relative: 'new.txt', previousPath: null, code: '??', kind: 'untracked', staged: false, unstaged: false, untracked: true, conflicted: false },
+    ],
+  } }),
+  gitDiff: async (_sessionId, relPath, mode) => ({ ok: true, value: { content: `diff --git a/${relPath} b/${relPath}\n+${mode}`, truncated: false } }),
+  gitLog: async () => ({ ok: true, value: {
+    commits: [{ hash: '0123456789abcdef0123456789abcdef01234567', shortHash: '0123456', author: 'Test User', date: '2026-01-01T00:00:00Z', subject: 'Initial commit' }],
+    hasMore: false,
+    nextSkip: 1,
+  } }),
+  gitShow: async () => ({ ok: true, value: {
+    hash: '0123456789abcdef0123456789abcdef01234567', shortHash: '0123456', author: 'Test User', date: '2026-01-01T00:00:00Z', subject: 'Initial commit',
+    files: [{ relative: 'README.md', previousPath: null, status: 'M' }],
+  } }),
+  gitCommitDiff: async (_sessionId, _hash, relPath) => ({ ok: true, value: { content: `commit diff ${relPath || 'all'}`, truncated: false } }),
 };
 
 const workspaces = {
@@ -197,7 +217,7 @@ for (const s of plugin.SKINS) assert(zh[`theme.${s.id}`] && en[`theme.${s.id}`],
 // remote
 assert(registered.remoteMounted !== null, 'remote.$mount called');
 assert(registered.remoteMounted.package === 'dsh-oh-my-theme', 'remote package id correct');
-assert(registered.remoteMounted.descriptors.length === 3, 'three remote descriptors');
+assert(registered.remoteMounted.descriptors.length === 8, 'eight remote descriptors');
 // Client descriptors must match the host manifest on every wire-visible field;
 // schemas are functions (not JSON-serializable), so compare them structurally.
 function codecEqual(a, b) {
@@ -273,6 +293,23 @@ await new Promise((resolve) => setTimeout(resolve, 0)); // let the lazy root loa
 assert(drawerScope.getSnapshot().remoteReady === true, 'remote ready published after mount');
 assert(drawerScope.getSnapshot().dirs[''] !== undefined, 'root directory loaded lazily on open');
 assert(drawerScope.getSnapshot().dirs[''].length === 2, 'root rows present');
+assert(drawerScope.getSnapshot().gitStatus?.branch === 'main', 'git status loads with the workspace');
+
+// Git changes and commit views share the same panel and remote state.
+overlayInjected.onSetWorkspace('changes');
+assert(drawerScope.getSnapshot().workspaceMode === 'changes', 'changes view can be selected');
+await new Promise((resolve) => setTimeout(resolve, 0));
+overlayInjected.onGitSelectFile('README.md', 'working');
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(drawerScope.getSnapshot().gitDiff?.content.includes('+working'), 'working-tree diff loads for a changed file');
+overlayInjected.onSetWorkspace('commits');
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(drawerScope.getSnapshot().gitCommits.length === 1, 'commit history loads');
+overlayInjected.onGitSelectCommit(drawerScope.getSnapshot().gitCommits[0].hash);
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert(drawerScope.getSnapshot().gitCommit?.subject === 'Initial commit', 'commit details load');
+assert(drawerScope.getSnapshot().gitCommitDiff?.content.includes('all'), 'commit diff loads');
+overlayInjected.onSetWorkspace('files');
 
 // When a blank session becomes a real conversation, keep the panel open but
 // migrate it from the fixed overlay into dsh's native details column.

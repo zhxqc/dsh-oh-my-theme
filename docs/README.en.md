@@ -7,6 +7,7 @@
   <img alt="npm downloads" src="https://img.shields.io/npm/dm/dsh-oh-my-theme?style=flat-square&color=cb3837" />
   <img alt="license" src="https://img.shields.io/github/license/zhxqc/dsh-oh-my-theme?style=flat-square" />
   <img alt="GitHub stars" src="https://img.shields.io/github/stars/zhxqc/dsh-oh-my-theme?style=flat-square" />
+  <a href="https://awesome-dsh-plugin.com"><img alt="Awesome DSH Plugin" src="https://awesome-dsh-plugin.com/badge.svg" /></a>
 </p>
 
 Theme + file workspace plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) web GUI:
@@ -44,14 +45,31 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 
 > **Where data lives**: skin, size, and font preferences are stored in the current browser's `localStorage`; session data is untouched.
 
+### Git history (read-only)
+
+> The same right-side workspace now switches between **Files / Git**; Git then offers **Changes / Commits** and reads the current workspace's Git state without performing write operations.
+
+- **Changes view** — groups staged, unstaged, and untracked files with status codes. Selecting a file previews the working-tree or staged diff through dsh's existing `DiffBlock`; untracked files get a generated diff too.
+- **Commits view** — paginates commits touching the current workspace with short hash, subject, author, and timestamp. Selecting a commit shows its changed files and commit diff, with optional file-level drill-down.
+- **Host safety** — only fixed read-only `git status` / `diff` / `log` / `show` commands are exposed; paths stay inside the session workspace, commit hashes are validated, and commands have timeout/output limits.
+
+<p align="center">
+  <img src="assets/git-changes.png" alt="Git changes and working-tree diff" width="49%" />
+  <img src="assets/git-timeline.png" alt="Git commit timeline and commit diff" width="49%" />
+</p>
+
 ## How it works
 
 A dsh plugin package has two halves:
 
-- **Host half** (`lib/index.js`) — a Typert Remote Service named `workspaceFiles` with three read-only, workspace-scoped methods:
+- **Host half** (`lib/index.js`) — a Typert Remote Service named `workspaceFiles` with eight read-only, workspace-scoped methods:
   - `search(agent, query, signal)` — indexes the session's workspace (ignore rules + 5000-file cap) and returns ranked matches for the `@` picker;
   - `listDir(agent, relPath, signal)` — lists one directory level, sorted dirs-first (lazy file tree);
   - `readText(agent, relPath, signal)` — reads a UTF-8 text file (512 KB cap, NUL-byte binary detection).
+  - `gitStatus(agent, signal)` — returns branch metadata and staged/unstaged/untracked status rows.
+  - `gitDiff(agent, relPath, mode, signal)` — returns a bounded working-tree or staged diff for one path.
+  - `gitLog(agent, skip, limit, signal)` / `gitShow(agent, hash, signal)` — paginate commits and inspect their changed files.
+  - `gitCommitDiff(agent, hash, relPath, signal)` — returns a bounded full-commit or file-level diff.
 
   Every method resolves paths strictly inside `agent.session.header.cwd` and rejects traversal. Nothing writes or executes. The typert manifest (`TYPERT_MANIFEST` + `ctx.typert.register`) is what lets the browser half call these methods over the same wire the shipped `ui-*` packages use.
 - **Browser half** (`lib/client.js`) — the whole UI. DSH's `dsh-client-modules` picks it up through the `dsh.client` declaration in `package.json`, serves the bundle at `/plugins/dsh-oh-my-theme/client.js`, and the vendored cordis Loader executes it through `window.__ModuleLoader__.load`.
@@ -63,7 +81,7 @@ On activation the browser half:
 3. **Restores typography preferences** from localStorage and immediately applies conversation, file-tree, and file-preview sizes plus the preview font through page-level CSS variables.
 4. **Mounts the `workspaceFiles` remote** (`ctx.remote.$mount(OHMY_REMOTE)` → `ctx.reflect.get("remote.workspaceFiles")`).
 5. **Registers the `@` trigger source** with `inputTriggers` — one index fetch per session (60 s TTL), ranked in-memory per keystroke.
-6. **Mounts the right-side file panel** — the launcher sits left of Session log. Existing conversations use a resizable `details` column and blank sessions use a right-edge overlay; both presentations share the persisted width setting and expand up to 1200px while preserving a minimum conversation width. The panel only claims either presentation while open, shares one snapshot store, follows the current session from `sessions.list`, and publishes its remote-ready state so loading failures surface visibly.
+6. **Mounts the right-side file/Git workspace** — the launcher sits left of Session log. Existing conversations use a resizable `details` column and blank sessions use a right-edge overlay; both presentations share the persisted width setting and expand up to 1200px while preserving a minimum conversation width. Files and Git (with Changes / Commits subviews) share one snapshot store, follow the current session from `sessions.list`, and publish remote errors visibly.
 
 ### Why localStorage?
 
@@ -105,6 +123,10 @@ In the composer, type `@` and start typing a path fragment — a menu lists matc
 ### File tree + file preview
 
 Click the **right-panel** button left of Session log to open the Codex-style panel. Its header switches between project-tree-only, split, and preview-only views, and the whole panel can be resized up to 1200px. Typography is configured globally under **Settings → General → Oh My Theme**. `.md` uses dsh's shared Markdown renderer; recognized source files are mapped from their filename or extension to a Shiki language and render with highlighting and localized copy buttons. Unknown text formats remain plain text.
+
+### Git changes + commits
+
+Open the right-side workspace and switch to **Git**, then choose **Changes** or **Commits**. The file tree, split-view, and preview controls stay available in the same toolbar; at narrow panel widths the toolbar automatically collapses to icon buttons with hover labels so controls do not wrap. Both Git views start list-only and expand the right-side diff detail after a file or commit is selected, avoiding an empty split pane on narrow panels. The Changes view's **Working tree / Staged index** buttons select the diff source. Commits are loaded from all local and remote refs and shown as a timeline with branch labels. When Git is unavailable or the directory is not a repository, the panel shows the host error while the file tree and preview remain usable.
 
 ## Add your own skin
 
@@ -159,6 +181,7 @@ dsh-oh-my-theme/
 ├── THIRD_PARTY_NOTICES.md # notices for Material Icon Theme and other third-party assets
 ├── README.md
 ├── docs/README.en.md
+├── docs/assets/            # README feature screenshots
 └── LICENSE
 ```
 
@@ -171,12 +194,12 @@ node test/client.smoke.mjs      # client bundle smoke test
 
 ## TODO
 
-- [ ] **Read-only Git integration (first phase)**
+- [x] **Read-only Git integration (first phase)**
   - Add Changes and Commits views to the right-side workspace;
   - Group staged, unstaged, and untracked files with status markers and file-level Diff previews;
   - Paginate commit summaries, authors, and timestamps, with per-commit file lists and Diff details;
   - Expose only fixed read-only Git methods from the host, validating workspace paths and commit hashes while capping execution time and output size;
-  - Prefer dsh's built-in `DiffBlock` instead of adding a heavy client library to the current build-free browser bundle.
+  - Reuse dsh's existing `DiffBlock` instead of adding a heavy client library to the build-free browser bundle.
 - [ ] **Git write operations (second-phase evaluation)** — staging, commits, branch switching, and conflict resolution require additional confirmation, permission, and recovery design and are outside the first phase.
 
 ## Uninstall
@@ -193,6 +216,4 @@ dsh plugin --profile web remove dsh-oh-my-theme
 
 ### Star History
 
-<p align="center">
-  <img alt="Star History" src="https://api.star-history.com/svg?repos=zhxqc/dsh-oh-my-theme&type=Date" width="640" />
-</p>
+[![Star History Chart](https://api.star-history.com/svg?repos=zhxqc/dsh-oh-my-theme&type=Date)](https://star-history.com/#zhxqc/dsh-oh-my-theme&Date)

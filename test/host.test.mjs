@@ -1,11 +1,19 @@
 // Host-half unit tests: workspaceFiles service against a real temp directory.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile as execFileCallback } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { Context } from '@deepseek-ai/cordis';
 import { WorkspaceFilesRuntime, TYPERT_MANIFEST, readImageResponse } from '../lib/index.js';
+
+const execFile = promisify(execFileCallback);
+
+async function runGit(cwd, args) {
+	return execFile('git', args, { cwd, encoding: 'utf8', windowsHide: true });
+}
 
 let root;
 let runtime;
@@ -22,7 +30,7 @@ test('host plugin registers a valid Typert manifest', () => {
 			assert.ok(parameter.codec.typeSymbol.includes('#'), 'codec has a type symbol');
 		}
 	}
-	assert.equal(TYPERT_MANIFEST.invocations.length, 3);
+	assert.equal(TYPERT_MANIFEST.invocations.length, 8);
 	// The agent lookup codec must match the provider's wire identity exactly.
 	for (const invocation of TYPERT_MANIFEST.invocations) {
 		const agent = invocation.parameters.find((p) => p.source === 'lookup');
@@ -50,8 +58,8 @@ test('host plugin mounts in a real cordis context', async () => {
 	assert.ok(pluginCtx, 'plugin apply ran');
 	assert.ok(pluginCtx.get('workspaceFiles'), 'workspaceFiles service registered in plugin scope');
 	const mine = pluginCtx.get('typert').local.list().filter((d) => d.service === 'workspaceFiles');
-	assert.equal(mine.length, 3, 'three workspaceFiles invocations committed');
-	assert.deepEqual(mine.map((d) => d.method), ['search', 'listDir', 'readText']);
+	assert.equal(mine.length, 8, 'eight workspaceFiles invocations committed');
+	assert.deepEqual(mine.map((d) => d.method), ['search', 'listDir', 'readText', 'gitStatus', 'gitDiff', 'gitLog', 'gitShow', 'gitCommitDiff']);
 	assert.equal(registeredRoutes.length, 1, 'image route registered');
 	assert.equal(registeredRoutes[0].path, '/api/oh-my-theme/image', 'image route path correct');
 });
@@ -178,4 +186,54 @@ test('aborted signal stops the walk early', async () => {
 	controller.abort();
 	const entries = await runtime.search(fakeAgent, '', controller.signal);
 	assert.ok(Array.isArray(entries), 'returns an array even when aborted');
+});
+
+test('git read-only methods expose status, diffs, and history', async () => {
+	const repo = await mkdtemp(path.join(os.tmpdir(), 'dsh-git-'));
+	try {
+		await runGit(repo, ['init', '-q']);
+		await runGit(repo, ['config', 'user.email', 'test@example.com']);
+		await runGit(repo, ['config', 'user.name', 'Test User']);
+		await writeFile(path.join(repo, 'tracked.txt'), 'before\n');
+		await runGit(repo, ['add', 'tracked.txt']);
+		await runGit(repo, ['commit', '-qm', 'initial commit']);
+		await runGit(repo, ['branch', 'feature/timeline']);
+		await writeFile(path.join(repo, 'history.txt'), 'second\n');
+		await runGit(repo, ['add', 'history.txt']);
+		await runGit(repo, ['commit', '-qm', 'second commit']);
+		await writeFile(path.join(repo, 'tracked.txt'), 'after\n');
+		await writeFile(path.join(repo, 'new.txt'), 'new file\n');
+		const agent = { session: { header: { cwd: repo } } };
+		const service = new WorkspaceFilesRuntime(new Context());
+		const status = await service.gitStatus(agent);
+		assert.ok(status.branch || status.detached, 'branch metadata returned');
+		assert.ok(Array.isArray(status.branches), 'branch list returned');
+		if (status.branch) assert.ok(status.branches.includes(status.branch), 'current branch is included in branch list');
+		assert.ok(status.branches.some((branch) => branch.includes('feature/timeline')), 'local branch list includes secondary branches');
+		assert.deepEqual(status.files.map((row) => row.relative).sort(), ['new.txt', 'tracked.txt']);
+		assert.equal(status.files.find((row) => row.relative === 'new.txt').untracked, true);
+		assert.equal(status.files.find((row) => row.relative === 'tracked.txt').unstaged, true);
+		const workingDiff = await service.gitDiff(agent, 'tracked.txt', 'working');
+		assert.match(workingDiff.content, /\+after/);
+		await runGit(repo, ['add', 'tracked.txt']);
+		const stagedDiff = await service.gitDiff(agent, 'tracked.txt', 'staged');
+		assert.match(stagedDiff.content, /\+after/);
+		const untrackedDiff = await service.gitDiff(agent, 'new.txt', 'working');
+		assert.match(untrackedDiff.content, /\+new file/);
+		const log = await service.gitLog(agent, 0, 20);
+		assert.equal(log.commits.length, 2);
+		const secondCommit = log.commits.find((item) => item.subject === 'second commit');
+		const initialCommit = log.commits.find((item) => item.subject === 'initial commit');
+		assert.ok(secondCommit && initialCommit, 'both commits are returned');
+		assert.ok(Array.isArray(initialCommit.refs), 'commit refs returned for timeline labels');
+		assert.ok(initialCommit.refs.some((ref) => ref.includes('feature/timeline')), 'all refs are included in the timeline');
+		const commit = await service.gitShow(agent, initialCommit.hash);
+		assert.ok(commit.files.some((file) => file.relative === 'tracked.txt'));
+		const commitDiff = await service.gitCommitDiff(agent, initialCommit.hash, 'tracked.txt');
+		assert.match(commitDiff.content, /\+before/);
+		await assert.rejects(() => service.gitDiff(agent, '../outside.txt', 'working'), /escapes the workspace/);
+		await assert.rejects(() => service.gitShow(agent, 'not-a-hash'), /invalid commit hash/);
+	} finally {
+		await rm(repo, { recursive: true, force: true });
+	}
 });

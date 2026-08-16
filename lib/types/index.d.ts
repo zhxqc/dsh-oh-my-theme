@@ -20,6 +20,55 @@ export interface DirEntry {
 	size: number;
 }
 
+/** One workspace-scoped Git status row. */
+export interface GitStatusEntry {
+	relative: string;
+	previousPath: string | null;
+	code: string;
+	kind: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | 'conflicted';
+	staged: boolean;
+	unstaged: boolean;
+	untracked: boolean;
+	conflicted: boolean;
+}
+
+export interface GitStatus {
+	branch: string | null;
+	detached: boolean;
+	branches: readonly string[];
+	files: readonly GitStatusEntry[];
+}
+
+export interface GitDiffResult {
+	content: string;
+	truncated: boolean;
+}
+
+export interface GitCommitSummary {
+	hash: string;
+	shortHash: string;
+	author: string;
+	date: string;
+	subject: string;
+	refs: readonly string[];
+}
+
+export interface GitCommitFile {
+	relative: string;
+	previousPath: string | null;
+	status: string;
+}
+
+export interface GitCommit extends GitCommitSummary {
+	files: readonly GitCommitFile[];
+}
+
+export interface GitLogResult {
+	commits: readonly GitCommitSummary[];
+	hasMore: boolean;
+	nextSkip: number;
+}
+
 /**
  * Typert Remote Service giving the browser half read-only, workspace-scoped
  * file access. Registered under the `workspaceFiles` Cordis key; methods are
@@ -47,6 +96,11 @@ export declare class WorkspaceFilesRuntime {
 	 * @param signal - cooperative cancellation.
 	 */
 	readText(agent: unknown, relPath: string, signal?: AbortSignal): Promise<{ content: string; truncated: boolean }>;
+	gitStatus(agent: unknown, signal?: AbortSignal): Promise<GitStatus>;
+	gitDiff(agent: unknown, relPath: string, mode: 'working' | 'staged', signal?: AbortSignal): Promise<GitDiffResult>;
+	gitLog(agent: unknown, skip: number, limit: number, signal?: AbortSignal): Promise<GitLogResult>;
+	gitShow(agent: unknown, hash: string, signal?: AbortSignal): Promise<GitCommit>;
+	gitCommitDiff(agent: unknown, hash: string, relPath: string, signal?: AbortSignal): Promise<GitDiffResult>;
 }
 
 /** Required services: the Typert registry that accepts the manifest. */
