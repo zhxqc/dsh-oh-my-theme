@@ -270,12 +270,12 @@ assert(drawerScope.getSnapshot().sessionId === 'session-1', 'drawer scope follow
 assert(drawerScope.getSnapshot().open === false, 'drawer starts closed');
 assert(drawerScope.getSnapshot().viewMode === 'tree', 'file panel starts in project-tree view');
 const balanceLauncher = registered.slots.find((r) => r.config.id === 'oh-my-theme-balance');
-assert(balanceLauncher && balanceLauncher.config.name === 'conversation.session.header.utilities', 'balance button sits in Session header utilities');
+assert(balanceLauncher && balanceLauncher.config.name === 'conversation.composer.dock', 'balance button sits below the composer statistics');
 const balanceInjected = balanceLauncher.config.inject();
 assert(balanceInjected.scope.getSnapshot().open === false, 'balance starts closed');
-balanceInjected.onToggle();
 await new Promise((resolve) => setTimeout(resolve, 0));
 assert(balanceInjected.scope.getSnapshot().data?.balance_infos?.[0]?.total_balance === '12.34', 'balance loads from the host remote');
+balanceInjected.onToggle();
 const balanceEl = balanceLauncher.component({ t: (key) => key, ...balanceInjected });
 assert(balanceEl !== null && balanceEl.a[0] === 'div', 'balance utility renders a wrapper');
 

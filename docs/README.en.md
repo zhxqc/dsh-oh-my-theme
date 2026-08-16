@@ -63,11 +63,11 @@ Built as a third-party plugin in the same shape as the shipped `ui-*` packages a
 
 ### DeepSeek live balance
 
-> Click the balance icon beside Session log to read the current official DeepSeek account balance. This feature intentionally shows balance only; it does not estimate request cost.
+> The live balance appears below the composer statistics line; click the amount for details. This feature intentionally shows balance only; it does not estimate request cost.
 
 - The Host resolves `DEEPSEEK_API_KEY` through DSH's credentials service and calls the official `/user/balance` endpoint.
 - The browser receives only CNY/USD totals, granted balance, topped-up balance, and the fetch time; the API key never crosses into the client or logs.
-- The compact popover supports manual refresh and reports missing credentials or an unavailable endpoint without exposing provider response details.
+- The balance loads after the host remote mounts, supports manual refresh, and reports missing credentials or an outdated host without exposing provider response details.
 
 ## How it works
 
