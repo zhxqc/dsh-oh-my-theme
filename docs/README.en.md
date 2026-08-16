@@ -216,4 +216,4 @@ dsh plugin --profile web remove dsh-oh-my-theme
 
 ### Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=zhxqc/dsh-oh-my-theme&type=Date)](https://star-history.com/#zhxqc/dsh-oh-my-theme&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=zhxqc/dsh-oh-my-theme&type=Date)](https://www.star-history.com/?type=date&repos=zhxqc%2Fdsh-oh-my-theme)
