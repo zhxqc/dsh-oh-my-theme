@@ -132,4 +132,10 @@ dsh plugin --profile web remove dsh-oh-my-theme
 
 ### Star 历史
 
-[![Star History Chart](https://api.star-history.com/svg?repos=zhxqc/dsh-oh-my-theme&type=Date)](https://www.star-history.com/?type=date&repos=zhxqc%2Fdsh-oh-my-theme)
+<a href="https://www.star-history.com/?repos=zhxqc%2Fdsh-oh-my-theme&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zhxqc/dsh-oh-my-theme&type=date&theme=dark&legend=top-left&sealed_token=F3i_HkPdFPQMO_nQlRTo5p60cmXPETrqUQDJwgahekcqGarY3-O21nmQVRoH5XsWrJbFWZHLqR03pf_yZYVwjvW5ViZwpcnyVN0mbVii6NKEwGfuIM5q2gXBkiX_ZR35Z0C4S8lSDFf3os8fM8esW51NNFTrr7hl4DFb0m5M3lVAawC_t31MGWe5qkzN" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zhxqc/dsh-oh-my-theme&type=date&legend=top-left&sealed_token=F3i_HkPdFPQMO_nQlRTo5p60cmXPETrqUQDJwgahekcqGarY3-O21nmQVRoH5XsWrJbFWZHLqR03pf_yZYVwjvW5ViZwpcnyVN0mbVii6NKEwGfuIM5q2gXBkiX_ZR35Z0C4S8lSDFf3os8fM8esW51NNFTrr7hl4DFb0m5M3lVAawC_t31MGWe5qkzN" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zhxqc/dsh-oh-my-theme&type=date&legend=top-left&sealed_token=F3i_HkPdFPQMO_nQlRTo5p60cmXPETrqUQDJwgahekcqGarY3-O21nmQVRoH5XsWrJbFWZHLqR03pf_yZYVwjvW5ViZwpcnyVN0mbVii6NKEwGfuIM5q2gXBkiX_ZR35Z0C4S8lSDFf3os8fM8esW51NNFTrr7hl4DFb0m5M3lVAawC_t31MGWe5qkzN" />
+ </picture>
+</a>
