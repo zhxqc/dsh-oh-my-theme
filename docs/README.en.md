@@ -205,16 +205,6 @@ node --test test/host.test.mjs   # host service tests
 node test/client.smoke.mjs      # client bundle smoke test
 ```
 
-## TODO
-
-- [x] **Read-only Git integration (first phase)**
-  - Add Changes and Commits views to the right-side workspace;
-  - Group staged, unstaged, and untracked files with status markers and file-level Diff previews;
-  - Paginate commit summaries, authors, and timestamps, with per-commit file lists and Diff details;
-  - Expose only fixed read-only Git methods from the host, validating workspace paths and commit hashes while capping execution time and output size;
-  - Reuse dsh's existing `DiffBlock` instead of adding a heavy client library to the build-free browser bundle.
-- [ ] **Git write operations (second-phase evaluation)** — staging, commits, branch switching, and conflict resolution require additional confirmation, permission, and recovery design and are outside the first phase.
-
 ## Uninstall
 
 ```sh
